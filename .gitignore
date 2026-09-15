@@ -1,0 +1,29 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/.env.local
+frontend/.env*.local
+npm-debug.log*
+
+# Python / FastAPI
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.pytest_cache/
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+.env.*.local

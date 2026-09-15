@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ivory: #F8F6F1;
+  --charcoal: #1C1C1C;
+  --taupe: #B8A99A;
+  --gold: #C6A15B;
+  --beige: #E5E0D8;
+  --gray: #77736E;
+  --green: #5E7A5E;
+  --red: #B15C4A;
+}
+
+html, body {
+  background: var(--ivory);
+  color: var(--charcoal);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-gold text-charcoal font-semibold text-sm px-6 py-3 rounded-sm hover:bg-[#B4924E] transition-colors;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-2 border border-taupe text-charcoal font-semibold text-sm px-6 py-3 rounded-sm hover:border-charcoal transition-colors;
+  }
+  .card {
+    @apply bg-white border border-beige;
+  }
+  .input {
+    @apply w-full px-3.5 py-3 border border-beige bg-white text-sm outline-none focus:border-gold;
+  }
+}
