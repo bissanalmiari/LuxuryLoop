@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Field } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 
@@ -43,7 +44,7 @@ export default function ResetPasswordForm() {
       setError(error.message);
       return;
     }
-    router.push("/login");
+    router.push("/");
     router.refresh();
   }
 
@@ -51,22 +52,26 @@ export default function ResetPasswordForm() {
     <>
       <p className="text-gold text-xs font-semibold tracking-widest text-center mb-3">NEW PASSWORD</p>
       <h1 className="font-serif text-3xl font-medium text-center mb-9">Set a new password</h1>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <PasswordInput
-          placeholder="New password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-        <PasswordInput
-          placeholder="Confirm new password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-          minLength={6}
-        />
-        {error && <p className="text-red text-xs">{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <Field label="New password">
+          <PasswordInput
+            placeholder="New password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+        </Field>
+        <Field label="Confirm new password">
+          <PasswordInput
+            placeholder="Confirm new password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            minLength={6}
+          />
+        </Field>
+        {error && <p className="text-red text-xs mb-4">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full justify-center">
           {loading ? "Updating..." : "Update password"}
         </Button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -52,9 +53,11 @@ export default function ForgotPasswordForm() {
       <p className="text-gold text-xs font-semibold tracking-widest text-center mb-3">RESET PASSWORD</p>
       <h1 className="font-serif text-3xl font-medium text-center mb-3">Forgot your password?</h1>
       <p className="text-grayx text-sm text-center mb-8">Enter your email and we&apos;ll send you a reset link.</p>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Input type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        {error && <p className="text-red text-xs">{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <Field label="Email">
+          <Input type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </Field>
+        {error && <p className="text-red text-xs mb-4">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full justify-center">
           {loading ? "Sending..." : "Send reset link"}
         </Button>

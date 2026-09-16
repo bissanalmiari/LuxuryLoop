@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
@@ -34,24 +35,36 @@ export default function LoginForm() {
 
   return (
     <>
-      <p className="text-gold text-xs font-semibold tracking-widest text-center mb-3">WELCOME BACK</p>
-      <h1 className="font-serif text-3xl font-medium text-center mb-9">Log in to LuxuryLoop</h1>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Input type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <div>
+      <p className="text-gold text-[12.5px] font-semibold tracking-widest text-center mb-3">Welcome back</p>
+      <h1 className="font-serif text-[30px] font-medium text-center mb-9">Log in to LuxuryLoop</h1>
+      <form onSubmit={handleSubmit}>
+        <Field label="Email">
+          <Input
+            type="email"
+            placeholder="you@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="Password">
           <PasswordInput
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <div className="flex justify-end mt-2">
-            <Link href="/forgot-password" className="text-xs text-grayx hover:text-gold transition-colors">
-              Forgot password?
-            </Link>
-          </div>
+        </Field>
+        <div className="flex justify-between items-center text-[13px] mb-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" className="accent-gold" />
+            Remember me
+          </label>
+          <Link href="/forgot-password" className="text-gold">
+            Forgot password?
+          </Link>
         </div>
-        {error && <p className="text-red text-xs">{error}</p>}
+        {error && <p className="text-red text-xs mb-4">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full justify-center">
           {loading ? "Logging in..." : "Log in"}
         </Button>

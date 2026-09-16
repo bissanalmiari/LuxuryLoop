@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 
 
 class UserProfile(BaseModel):
@@ -12,13 +12,28 @@ class UserProfile(BaseModel):
     is_active: bool = True
 
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-
-
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
+
+
+# ---- Admin role management ----------------------------------------------------
+
+
+class AdminCreateUser(BaseModel):
+    email: str
+    password: str
+    full_name: Optional[str] = None
+    role: Literal["customer", "staff", "admin"] = "customer"
+
+
+class AdminRoleUpdate(BaseModel):
+    role: Literal["customer", "staff", "admin"]
+
+
+class AdminUserResponse(BaseModel):
+    id: str
+    email: str
+    full_name: Optional[str] = None
+    role: str = "customer"
+    is_active: bool = True

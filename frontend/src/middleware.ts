@@ -23,8 +23,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
     pathname.startsWith("/api/auth");
+  const isResetPassword = pathname.startsWith("/reset-password");
 
   if (isAdminRoute && !user) {
     const url = request.nextUrl.clone();
@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
-  if (isAuthRoute && user) {
+  if (isAuthRoute && user && !isResetPassword) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
