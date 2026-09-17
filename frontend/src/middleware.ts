@@ -41,8 +41,9 @@ export async function middleware(request: NextRequest) {
     }
   }
   if (isAuthRoute && user && !isResetPassword) {
+    const role = user.app_metadata?.role ?? user.user_metadata?.role;
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = role === "admin" ? "/admin" : "/";
     return NextResponse.redirect(url);
   }
   return response;

@@ -50,7 +50,7 @@ async def update_role(
 
     # Update auth metadata
     try:
-        client.auth.admin.update_user(
+        client.auth.admin.update_user_by_id(
             user_id,
             {
                 "app_metadata": {"role": payload.role},
@@ -78,7 +78,7 @@ async def toggle_active(
 ):
     client = get_supabase_admin()
     try:
-        client.auth.admin.update_user(user_id, {"app_metadata": {"is_active": is_active}})
+        client.auth.admin.update_user_by_id(user_id, {"app_metadata": {"is_active": is_active}})
     except Exception:
         pass
 

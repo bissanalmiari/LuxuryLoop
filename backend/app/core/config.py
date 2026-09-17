@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
     supabase_url: str = ""
     supabase_anon_key: str = ""

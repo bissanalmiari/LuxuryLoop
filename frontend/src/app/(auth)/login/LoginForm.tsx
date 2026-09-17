@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { authedFetch } from "@/lib/api";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -22,14 +23,21 @@ export default function LoginForm() {
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
     if (error) {
       setError(error.message);
       return;
     }
-    router.push("/");
+    let role = data.user?.app_metadata?.role ?? data.user?.user_metadata?.role;
+    try {
+      const me = await authedFetch("/auth/me");
+      if (me?.role) role = me.role;
+    } catch {
+      // fall back to JWT metadata role
+    }
+    router.push(role === "admin" ? "/admin" : "/");
     router.refresh();
   }
 

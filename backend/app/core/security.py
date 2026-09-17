@@ -4,6 +4,7 @@ from jose import jwt, jws, JWTError
 import httpx
 
 from app.core.config import settings
+from app.core.supabase_client import get_supabase_admin
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -84,9 +85,38 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
 
     try:
-        return decode_user_token(credentials.credentials)
+        user = decode_user_token(credentials.credentials)
     except (JWTError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    role, branch_id = _resolve_role_from_db(user.id)
+    if role:
+        # public.users is authoritative; the JWT metadata may lag behind manual edits.
+        user.role = role
+        user.branch_id = branch_id
+    return user
+
+
+def _resolve_role_from_db(user_id: str) -> tuple[str | None, str | None]:
+    """Fetch the authoritative (role, branch_id) from public.users when the DB is reachable."""
+    if not settings.supabase_db_url:
+        return None, None
+    try:
+        import psycopg
+
+        conn = psycopg.connect(settings.supabase_db_url)
+        try:
+            row = conn.execute(
+                "select role::text, branch_id::text from public.users where id = %s",
+                (user_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        if row:
+            return row[0], row[1]
+    except Exception:
+        pass
+    return None, None
 
 
 def require_role(*roles: str):
@@ -102,6 +132,46 @@ def require_role(*roles: str):
 
     return checker
 
+class StaffContext(CurrentUser):
+    """CurrentUser + the branch_id, fetched fresh from `users` — the JWT doesn't carry it."""
+
+    def __init__(self, id: str, email: str | None, role: str, branch_id: str | None, is_active: bool):
+        super().__init__(id=id, email=email, role=role)
+        self.branch_id = branch_id
+        self.is_active = is_active
+
+
+async def get_staff_context(user: CurrentUser = Depends(get_current_user)) -> StaffContext:
+    """
+    Re-checks role/branch against the `users` table instead of trusting the
+    JWT's app_metadata — that claim can be stale until the token refreshes,
+    and it never carries branch_id at all.
+    """
+    client = get_supabase_admin()
+    resp = client.table("users").select("role, branch_id, is_active").eq("id", user.id).single().execute()
+    profile = resp.data
+    if not profile or profile.get("role") not in ("staff", "admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff access required")
+    if not profile.get("is_active", True):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
+    return StaffContext(
+        id=user.id,
+        email=user.email,
+        role=profile["role"],
+        branch_id=profile.get("branch_id"),
+        is_active=profile.get("is_active", True),
+    )
+
+
+def assert_branch_access(staff: StaffContext, target_branch_id: str) -> None:
+    """Admin can touch any branch; staff only their own."""
+    if staff.role == "admin":
+        return
+    if staff.branch_id != target_branch_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only manage products at your assigned branch",
+        )
 
 require_admin = require_role("admin")
 require_staff = require_role("staff", "admin")
