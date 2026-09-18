@@ -14,6 +14,7 @@ const NAV: { group: string; items: { label: string; icon: string; href: string |
     group: "CATALOG",
     items: [
       { label: "Products", icon: "📦", href: "/admin/products" },
+       { label: "Inventory", icon: "🔄", href: "/admin/inventory" },
       { label: "Branches", icon: "🏬", href: "/admin/branches" },
       { label: "Categories", icon: "🏷️", href: "/admin/categories" },
       { label: "Brands", icon: "💠", href: "/admin/brands" },

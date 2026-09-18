@@ -20,3 +20,18 @@ export interface Product {
   video_url: string | null;
   serial_reference: string | null;
 }
+
+export interface InventoryMovement {
+  id: string;
+  item_id: string;
+  from_branch_id: string;
+  from_branch_name: string;
+  to_branch_id: string;
+  to_branch_name: string;
+  moved_by_staff_id: string;
+  moved_by_staff_name: string;
+  status: string;
+  notes: string | null;
+  moved_at: string;
+  created_at: string;
+}

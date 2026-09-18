@@ -11,7 +11,15 @@ export async function authedFetch(path: string, options: RequestInit = {}) {
   headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      throw new Error(`Unable to reach the API at ${API_BASE}. Check that the backend is running and NEXT_PUBLIC_API_URL is configured.`);
+    }
+    throw error;
+  }
 
   if (!res.ok) {
     let detail = res.statusText;

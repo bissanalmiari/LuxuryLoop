@@ -33,5 +33,9 @@ def rls_connection(user: CurrentUser = Depends(get_current_user)):
             (user.id, user.role, user.branch_id),
         )
         yield conn
+        conn.commit()          # <-- was missing: writes were silently rolled back on close
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
