@@ -4,6 +4,7 @@ const fields = [
   { key: "name", label: "Name", required: true },
   { key: "address", label: "Address", required: true },
   { key: "city", label: "City" },
+  { key: "country", label: "Country" },
   { key: "phone", label: "Phone" },
   { key: "email", label: "Email" },
   { key: "is_active", label: "Active", type: "checkbox" as const },

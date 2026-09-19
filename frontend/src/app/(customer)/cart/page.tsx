@@ -4,7 +4,7 @@ import Link from "next/link";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 
-interface CartItem { id: string; item_id: string; title: string; brand_name: string; branch_name: string; selling_price: number; image_url: string | null; status: string; }
+interface CartItem { id: string; item_id: string; title: string; brand_name: string; branch_name: string; branch_country: string; selling_price: number; image_url: string | null; status: string; }
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -26,7 +26,32 @@ export default function CartPage() {
     load();
   }
 
-  if (loading) return <div className="max-w-[900px] mx-auto px-8 py-16 text-grayx">Loading...</div>;
+  if (loading)
+    return (
+      <div className="max-w-[900px] mx-auto px-8 py-14">
+        <div className="h-8 w-48 bg-beige/50 animate-pulse mb-8" />
+        <div className="grid grid-cols-[1fr_320px] gap-10">
+          <div className="border border-beige bg-white divide-y divide-beige">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                <div className="w-16 h-16 bg-beige/40 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-24 bg-beige/50" />
+                  <div className="h-4 w-44 bg-beige/50" />
+                  <div className="h-3 w-36 bg-beige/50" />
+                </div>
+                <div className="h-5 w-16 bg-beige/50" />
+              </div>
+            ))}
+          </div>
+          <div className="border border-beige bg-white p-5 h-fit space-y-3">
+            <div className="h-4 w-28 bg-beige/50 animate-pulse" />
+            <div className="h-4 w-44 bg-beige/50 animate-pulse" />
+            <div className="h-11 w-full bg-beige/50 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="max-w-[900px] mx-auto px-8 py-14">
@@ -44,7 +69,7 @@ export default function CartPage() {
                 <div className="flex-1">
                   <p className="text-xs text-grayx">{it.brand_name}</p>
                   <p className="font-medium text-sm">{it.title}</p>
-                  <p className="text-xs text-grayx">Branch: {it.branch_name}</p>
+                  <p className="text-xs text-grayx">Branch: {it.branch_name}{it.branch_country ? `, ${it.branch_country}` : ""}</p>
                   {it.status !== "available" && <p className="text-xs text-red mt-1">No longer available — please remove</p>}
                 </div>
                 <p className="font-serif">${it.selling_price.toLocaleString()}</p>

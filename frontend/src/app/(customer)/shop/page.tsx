@@ -43,6 +43,7 @@ export default function ShopPage() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("page_size", String(PAGE_SIZE));
+      params.set("status", "available");
       if (categoryFilter[0]) params.set("category_id", categoryFilter[0]);
       if (brandFilter[0]) params.set("brand_id", brandFilter[0]);
       if (branchFilter) params.set("branch_id", branchFilter);
@@ -51,9 +52,13 @@ export default function ShopPage() {
       if (search) params.set("search", search);
 
       try {
-        const res = await fetch(`${API_BASE}/items?${params.toString()}`);
-        const data: ProductListResponse = await res.json();
-        if (!cancelled) { setProducts(data.items); setTotal(data.total); }
+        const res = await fetch(`${API_BASE}/products?${params.toString()}`);
+        if (!res.ok) throw new Error(`Failed to load products: ${res.status}`);
+        const data: Partial<ProductListResponse> = await res.json();
+        if (!cancelled) {
+          setProducts(Array.isArray(data.items) ? data.items : []);
+          setTotal(typeof data.total === "number" ? data.total : 0);
+        }
       } catch {
         if (!cancelled) { setProducts([]); setTotal(0); }
       }
@@ -166,10 +171,24 @@ export default function ShopPage() {
             </select>
           </div>
 
-          {!loading && products.length === 0 ? (
+          {loading ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ background: "#fff", border: "1px solid #E5E0D8" }} className="animate-pulse">
+                  <div style={{ aspectRatio: "1 / 1", background: "#E5E0D8" }} />
+                  <div style={{ padding: 18 }}>
+                    <div style={{ height: 12, background: "#E5E0D8", width: "45%", marginBottom: 10 }} />
+                    <div style={{ height: 15, background: "#E5E0D8", width: "65%", marginBottom: 12 }} />
+                    <div style={{ height: 19, background: "#E5E0D8", width: "40%", marginBottom: 14 }} />
+                    <div style={{ height: 38, background: "#E5E0D8" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
             <p style={{ color: "#77736E", fontSize: 14, padding: "40px 0" }}>No items match your filters.</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
               {products.map((p) => (
                 <div key={p.id} style={{ background: "#fff", border: "1px solid #E5E0D8" }}>
                   <Link href={`/product/${p.id}`} style={{ display: "block", position: "relative" }}>
@@ -215,7 +234,7 @@ export default function ShopPage() {
                       ${p.selling_price.toLocaleString()}
                     </p>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12.5, color: "#77736E" }}>📍 {p.branch_name}</span>
+                      <span style={{ fontSize: 12.5, color: "#77736E" }}>📍 {p.branch_name}{p.branch_country ? `, ${p.branch_country}` : ""}</span>
                       <Link
                         href={`/product/${p.id}`}
                         style={{

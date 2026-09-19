@@ -14,6 +14,7 @@ class ProductOut(BaseModel):
     brand_name: str = ""
     category_name: str = ""
     branch_name: str = ""
+    branch_country: str = ""
     branch_id: str = ""
     ownership_type: str = "store_owned"
     cost: Optional[float] = None

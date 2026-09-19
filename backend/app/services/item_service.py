@@ -29,7 +29,7 @@ def _build_item_query(client: Client, filters: dict, page: int, page_size: int) 
 
 
 def _resolve_names(client: Client, item: dict) -> dict:
-    brand_name = category_name = branch_name = ""
+    brand_name = category_name = branch_name = branch_country = ""
     if item.get("brand_id"):
         b = client.table("brands").select("name").eq("id", item["brand_id"]).execute()
         if b.data:
@@ -39,13 +39,15 @@ def _resolve_names(client: Client, item: dict) -> dict:
         if c.data:
             category_name = c.data[0]["name"]
     if item.get("branch_id"):
-        br = client.table("branches").select("name").eq("id", item["branch_id"]).execute()
+        br = client.table("branches").select("name, country").eq("id", item["branch_id"]).execute()
         if br.data:
             branch_name = br.data[0]["name"]
+            branch_country = br.data[0].get("country") or ""
 
     item["brand_name"] = brand_name
     item["category_name"] = category_name
     item["branch_name"] = branch_name
+    item["branch_country"] = branch_country
     return item
 
 
@@ -124,7 +126,7 @@ def update_item_status(client: Client, item_id: str, new_status: str) -> dict:
             detail=f"Cannot move item from '{current}' to '{new_status}'. Allowed: {sorted(allowed) or 'none (terminal state)'}",
         )
 
-    resp = client.table("items").update({"status": new_status}).eq("id", item_id).select("*").execute()
+    resp = client.table("items").update({"status": new_status}).eq("id", item_id).execute()
     if not resp.data:
         raise HTTPException(status_code=404, detail="Item status was not updated")
     return _enrich_item(client, resp.data[0])

@@ -139,17 +139,18 @@ export function ReferenceManager({ title, subtitle, resource, singular, fields }
                   {f.label}
                 </th>
               ))}
-              <th className="text-left text-[11.5px] text-grayx font-semibold px-6 py-3 border-b border-beige"></th>
+              <th className="text-right text-[11.5px] text-grayx font-semibold px-6 py-3 border-b border-beige"></th>
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={fields.length + 1} className="px-6 py-[15px] text-[13.5px] text-grayx border-b border-[#F0EDE6]">
-                  Loading…
-                </td>
-              </tr>
-            )}
+            {loading &&
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="border-b border-[#F0EDE6] last:border-b-0 animate-pulse">
+                  <td colSpan={fields.length + 1} className="px-6 py-4">
+                    <div className="h-4 bg-beige/50 w-full" />
+                  </td>
+                </tr>
+              ))}
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={fields.length + 1} className="px-6 py-[15px] text-[13.5px] text-grayx border-b border-[#F0EDE6]">
@@ -176,8 +177,8 @@ export function ReferenceManager({ title, subtitle, resource, singular, fields }
                     )}
                   </td>
                 ))}
-                <td className="px-6 py-[15px]">
-                  <div className="flex gap-2">
+                <td className="px-6 py-[15px] text-right whitespace-nowrap">
+                  <div className="flex justify-end gap-2">
                     <button
                       onClick={() => startEdit(row)}
                       className="w-[30px] h-[30px] border border-beige bg-white flex items-center justify-center cursor-pointer hover:border-gold"

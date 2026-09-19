@@ -3,6 +3,7 @@ export interface Branch {
   name: string;
   address: string;
   city: string | null;
+  country: string | null;
   phone: string | null;
   email: string | null;
   is_active: boolean;
@@ -35,6 +36,7 @@ export interface Product {
   brand_name: string;
   category_name: string;
   branch_name: string;
+  branch_country: string;
   branch_id: string;
   selling_price: number;
   discount: number;

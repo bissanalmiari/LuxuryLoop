@@ -141,7 +141,11 @@ export default function AdminInventoryPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-12 text-center text-grayx text-sm">Loading...</td></tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="border-b border-beige/50 animate-pulse">
+                  <td className="px-6 py-4" colSpan={4}><div className="h-4 bg-beige/50 w-full" /></td>
+                </tr>
+              ))
             ) : items.length === 0 ? (
               <tr><td colSpan={4} className="px-6 py-12 text-center text-grayx text-sm">No items found</td></tr>
             ) : (
@@ -179,7 +183,7 @@ export default function AdminInventoryPage() {
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-beige w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-beige">
-              <h2 className="text-[13px] font-semibold">Transfer "{transferItem.title}"</h2>
+              <h2 className="text-[13px] font-semibold">Transfer &quot;{transferItem.title}&quot;</h2>
               <button onClick={() => setTransferItem(null)} className="text-grayx hover:text-charcoal"><X size={16} /></button>
             </div>
             <form onSubmit={submitTransfer} className="p-6 space-y-4">
@@ -216,7 +220,7 @@ export default function AdminInventoryPage() {
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-beige w-full max-w-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-beige">
-              <h2 className="text-[13px] font-semibold">Movement History — "{historyItem.title}"</h2>
+              <h2 className="text-[13px] font-semibold">Movement History — &quot;{historyItem.title}&quot;</h2>
               <button onClick={() => setHistoryItem(null)} className="text-grayx hover:text-charcoal"><X size={16} /></button>
             </div>
             <div className="p-6">

@@ -46,6 +46,7 @@ export default function AdminProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -83,7 +84,7 @@ export default function AdminProductsPage() {
     });
   }, []);
 
-  useEffect(() => { setPage(1); }, [statusFilter, categoryFilter, brandFilter, branchFilter]);
+  useEffect(() => { setPage(1); }, [statusFilter, categoryFilter, brandFilter, branchFilter, search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +97,7 @@ export default function AdminProductsPage() {
       if (categoryFilter) params.set("category_id", categoryFilter);
       if (brandFilter) params.set("brand_id", brandFilter);
       if (branchFilter) params.set("branch_id", branchFilter);
+      if (search) params.set("search", search);
 
       try {
         const data: ProductListResponse = await authedFetch(`/products?${params.toString()}`);
@@ -107,7 +109,7 @@ export default function AdminProductsPage() {
     }
     load();
     return () => { cancelled = true; };
-  }, [page, statusFilter, categoryFilter, brandFilter, branchFilter]);
+  }, [page, statusFilter, categoryFilter, brandFilter, branchFilter, search]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -116,6 +118,7 @@ export default function AdminProductsPage() {
     setCategoryFilter("");
     setBrandFilter("");
     setBranchFilter("");
+    setSearch("");
     setPage(1);
   }
 
@@ -269,6 +272,12 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="flex gap-3 mb-6">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search products…"
+          className="px-3 py-2 border border-beige text-sm bg-white outline-none w-64 focus:border-gold"
+        />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none">
           <option value="">All Status</option>
           <option value="available">Available</option>
@@ -385,7 +394,7 @@ export default function AdminProductsPage() {
               {!editingProduct && (
                 <p className="text-[11px] text-grayx bg-ivory/60 border border-beige px-3 py-2">
                   This creates a store-owned item. Consigned items are created automatically once a
-                  customer's consignment is approved.
+                  customer&apos;s consignment is approved.
                 </p>
               )}
 

@@ -1,7 +1,7 @@
 const branches = [
-  { name: "Beirut — Downtown", address: "Rue Gouraud, Gemmayzeh", phone: "+961 1 456 789", imageClass: "bg-taupe" },
-  { name: "Jounieh — Kaslik", address: "Kaslik Highway", phone: "+961 9 234 567", imageClass: "bg-grayx" },
-  { name: "Tripoli — Azmi St.", address: "Azmi Street", phone: "+961 6 345 678", imageClass: "bg-gold" },
+  { name: "Beirut — Downtown", address: "Rue Gouraud, Gemmayzeh", country: "Lebanon", phone: "+961 1 456 789", imageClass: "bg-taupe" },
+  { name: "Jounieh — Kaslik", address: "Kaslik Highway", country: "Lebanon", phone: "+961 9 234 567", imageClass: "bg-grayx" },
+  { name: "Tripoli — Azmi St.", address: "Azmi Street", country: "Lebanon", phone: "+961 6 345 678", imageClass: "bg-gold" },
 ];
 
 export function Branches() {
@@ -20,7 +20,7 @@ export function Branches() {
             <div className={`h-[140px] ${b.imageClass}`} />
             <div className="p-5">
               <h4 className="text-[15px] font-semibold mb-1.5">{b.name}</h4>
-              <p className="text-[13px] text-grayx mb-1">{b.address}</p>
+              <p className="text-[13px] text-grayx mb-1">{b.address} · {b.country}</p>
               <p className="text-[13px] text-grayx">{b.phone}</p>
             </div>
           </div>

@@ -7,6 +7,7 @@ class BranchBase(BaseModel):
     name: str
     address: str
     city: Optional[str] = None
+    country: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     is_active: bool = True
@@ -20,6 +21,7 @@ class BranchUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
+    country: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     is_active: Optional[bool] = None

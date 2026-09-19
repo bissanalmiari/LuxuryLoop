@@ -18,10 +18,10 @@ export default function ProductDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [adding, setAdding] = useState(false);
-  const [addedMsg, setAddedMsg] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/items/${id}`)
+    fetch(`${API_BASE}/products/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error("not found");
         return r.json();
@@ -33,7 +33,6 @@ export default function ProductDetailPage() {
   async function handleAddToCart() {
     if (!product) return;
     setAdding(true);
-    setAddedMsg(null);
     try {
       const supabase = createClient();
       const { data } = await supabase.auth.getSession();
@@ -45,17 +44,32 @@ export default function ProductDetailPage() {
         method: "POST",
         body: JSON.stringify({ item_id: product.id }),
       });
-      setAddedMsg("Added to cart.");
+      setAdded(true);
     } catch (e) {
-      setAddedMsg(e instanceof Error ? e.message : "Could not add to cart");
+      alert(e instanceof Error ? e.message : "Could not add to cart");
     }
     setAdding(false);
   }
 
   if (notFound)
-    return <div className="max-w-[1240px] mx-auto px-8 py-20 text-center text-grayx">Item not found.</div>;
+    return <div className="max-w-[1240px] mx-auto px-8 py-10 text-center text-grayx">Item not found.</div>;
   if (!product)
-    return <div className="max-w-[1240px] mx-auto px-8 py-20 text-center text-grayx">Loading...</div>;
+    return (
+      <div className="max-w-[1240px] mx-auto px-8 py-10">
+        <div className="h-3 w-44 bg-beige/50 animate-pulse mb-8" />
+        <div className="grid grid-cols-2 gap-12">
+          <div className="aspect-square bg-beige/30 border border-beige animate-pulse" />
+          <div className="space-y-4">
+            <div className="h-3 w-24 bg-beige/50 animate-pulse" />
+            <div className="h-8 w-2/3 bg-beige/50 animate-pulse" />
+            <div className="h-7 w-36 bg-beige/50 animate-pulse" />
+            <div className="h-10 w-28 bg-beige/50 animate-pulse" />
+            <div className="h-28 w-full bg-beige/30 animate-pulse" />
+            <div className="h-12 w-56 bg-beige/50 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
 
   const images = product.image_urls.length ? product.image_urls : [];
   const statusMeta = {
@@ -121,27 +135,26 @@ export default function ProductDetailPage() {
           <div className="border border-beige bg-white p-4 mb-4">
             <p className="text-[11px] font-semibold text-grayx uppercase mb-2">This piece</p>
             <div className="flex items-center justify-between">
-              <span className="text-sm">📍 {product.branch_name}</span>
+              <span className="text-sm">📍 {product.branch_name}{product.branch_country ? `, ${product.branch_country}` : ""}</span>
               <Badge tone={statusMeta.tone}>{statusMeta.label}</Badge>
             </div>
             <p className="text-[11px] text-grayx mt-2">
-              Every LuxuryLoop item is a single, unique piece — once it's gone, it's gone.
+              Every LuxuryLoop item is a single, unique piece — once it&apos;s gone, it&apos;s gone.
             </p>
           </div>
 
           <div className="flex gap-3">
             <Button
               onClick={handleAddToCart}
-              disabled={product.status !== "available" || adding}
+              disabled={product.status !== "available" || adding || added}
               className="flex-1 justify-center"
             >
-              {product.status !== "available" ? "Not Available" : adding ? "Adding..." : "Add to cart"}
+              {product.status !== "available" ? "Not Available" : added ? "Added to Cart" : adding ? "Adding..." : "Add to cart"}
             </Button>
             <button className="w-11 h-11 border border-beige flex items-center justify-center hover:border-gold shrink-0" aria-label="Wishlist">
               ♡
             </button>
           </div>
-          {addedMsg && <p className="text-xs text-grayx mt-2">{addedMsg}</p>}
         </div>
       </div>
     </div>
