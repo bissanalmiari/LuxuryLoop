@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, Upload, RotateCcw } from "lucide-react";
 import { authedFetch } from "@/lib/api";
-import { Branch, Category, Brand } from "@/lib/types/reference";
-import { Product } from "@/lib/types/domain";
+
+import {Branch, Category, Brand, Product, ProductListResponse } from "@/lib/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -12,10 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 const PAGE_SIZE = 15;
 const STORAGE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "uploads";
 
-type ProductListResponse = {
-  items: Product[];
-  total: number;
-};
+
 
 const statusBadge: Record<string, "gold" | "green" | "red" | "gray"> = {
   available: "green",

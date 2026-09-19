@@ -5,31 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const NAV: { group: string; items: { label: string; icon: string; href: string | null }[] }[] = [
-  {
-    group: "OVERVIEW",
-    items: [{ label: "Dashboard", icon: "📊", href: "/admin" }],
-  },
-  {
-    group: "CATALOG",
-    items: [
-      { label: "Products", icon: "📦", href: "/admin/products" },
-       { label: "Inventory", icon: "🔄", href: "/admin/inventory" },
-      { label: "Branches", icon: "🏬", href: "/admin/branches" },
-      { label: "Categories", icon: "🏷️", href: "/admin/categories" },
-      { label: "Brands", icon: "💠", href: "/admin/brands" },
-    ],
-  },
-  {
-    group: "OPERATIONS",
-    items: [
-      { label: "Consignments", icon: "📋", href: null },
-      { label: "Orders", icon: "🛍", href: null },
-      { label: "Customers", icon: "👥", href: null },
-    ],
-  },
-];
-
 function initialsOf(name: string) {
   return name
     .split(/\s+/)
@@ -54,6 +29,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const userMeta = user?.user_metadata ?? {};
   const fullName = userMeta.full_name?.trim() || user?.email?.split("@")[0] || "Admin";
   const role = userMeta.role ?? "admin";
+  const isAdmin = role === "admin";
+
+  // Build NAV here, inside the component, so it can react to role.
+  const NAV: { group: string; items: { label: string; icon: string; href: string | null }[] }[] = [
+    {
+      group: "OVERVIEW",
+      items: [{ label: "Dashboard", icon: "📊", href: "/admin" }],
+    },
+    {
+      group: "CATALOG",
+      items: [
+        { label: "Products", icon: "📦", href: "/admin/products" },
+        { label: "Inventory", icon: "🔄", href: "/admin/inventory" },
+        ...(isAdmin
+          ? [
+              { label: "Branches", icon: "🏬", href: "/admin/branches" },
+              { label: "Categories", icon: "🏷️", href: "/admin/categories" },
+              { label: "Brands", icon: "💠", href: "/admin/brands" },
+            ]
+          : []),
+      ],
+    },
+    {
+      group: "OPERATIONS",
+      items: [
+        { label: "Consignments", icon: "📋", href: null },
+        { label: "Orders", icon: "🛍", href: "/admin/orders" },
+        { label: "Customers", icon: "👥", href: null },
+      ],
+    },
+  ];
 
   async function logout() {
     await createClient().auth.signOut();

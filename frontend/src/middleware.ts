@@ -33,13 +33,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   if (isAdminRoute && user) {
-    const role = user.app_metadata?.role ?? user.user_metadata?.role;
-    if (role !== "admin") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
-    }
+  const role = user.app_metadata?.role ?? user.user_metadata?.role;
+  if (role !== "admin" && role !== "staff") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
   }
+}
   if (isAuthRoute && user && !isResetPassword) {
     const role = user.app_metadata?.role ?? user.user_metadata?.role;
     const url = request.nextUrl.clone();

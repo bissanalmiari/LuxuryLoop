@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { ArrowRightLeft, History, X } from "lucide-react";
 import { authedFetch } from "@/lib/api";
-import { Branch } from "@/lib/types/reference";
-import { Product, InventoryMovement } from "@/lib/types/domain";
+
+import { Branch, Product, InventoryMovement } from "@/lib/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";

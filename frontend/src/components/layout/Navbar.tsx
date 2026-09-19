@@ -1,30 +1,36 @@
+// src/components/layout/Navbar.tsx (or wherever the customer nav lives)
 import Link from "next/link";
-import { User } from "lucide-react";
 
-const links = [
+const NAV_LINKS = [
   { label: "Home", href: "/" },
+  { label: "Shop", href: "/shop" },
+  { label: "Consign", href: "/consign" },
+  { label: "About", href: "/about" },
 ];
 
 export function Navbar() {
   return (
-    <header className="bg-white border-b border-beige sticky top-0 z-50">
-      <nav className="max-w-[1240px] mx-auto flex items-center justify-between px-8 py-5">
+    <header className="border-b border-beige bg-white sticky top-0 z-40">
+      <div className="max-w-[1240px] mx-auto px-8 py-5 flex items-center justify-between">
         <Link href="/" className="font-serif text-2xl">
-          Luxury<span className="italic text-gold">Loop</span>
+          Luxury<span className="text-gold italic">Loop</span>
         </Link>
-        <ul className="flex gap-10">
-          {links.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="text-sm font-medium hover:text-gold transition-colors">
-                {l.label}
-              </Link>
-            </li>
+        <nav className="flex items-center gap-8">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm font-medium text-charcoal hover:text-gold transition-colors"
+            >
+              {link.label}
+            </Link>
           ))}
-        </ul>
-        <div className="flex items-center gap-5">
-          <Link href="/login" aria-label="Account" className="text-charcoal"><User size={19} /></Link>
+        </nav>
+        <div className="flex items-center gap-4">
+          <Link href="/cart" className="text-sm font-medium hover:text-gold">Cart</Link>
+          <Link href="/login" className="text-sm font-medium hover:text-gold">Log in</Link>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }

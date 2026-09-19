@@ -1,3 +1,28 @@
+export interface Branch {
+  id: string;
+  name: string;
+  address: string;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string | null;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string | null;
+}
+
 export interface Product {
   id: string;
   item_code: string | null;
@@ -19,6 +44,13 @@ export interface Product {
   image_urls: string[];
   video_url: string | null;
   serial_reference: string | null;
+}
+
+export interface ProductListResponse {
+  items: Product[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface InventoryMovement {
