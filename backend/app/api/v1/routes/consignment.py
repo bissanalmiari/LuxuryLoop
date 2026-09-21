@@ -1,7 +1,15 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.security import get_current_user, CurrentUser
+
+from app.core.security import CurrentUser, get_current_user
 from app.core.supabase_client import get_supabase_admin
-from app.schemas.consignment import ConsignmentCreate, ConsignmentOut, ConsignmentListResponse
+from app.schemas.consignment import (
+    ConsignmentCreate, ConsignmentOut, ConsignmentListResponse,
+)
+from app.schemas.physical_auth import (
+    PhysicalAuthCreate, PhysicalAuthDecision, PhysicalAuthOut,
+)
 from app.services import consignment_service
 
 router = APIRouter(prefix="/consignments", tags=["consignments"])
@@ -27,9 +35,44 @@ async def list_my_consignments(user: CurrentUser = Depends(get_current_user)):
 
 @router.get("/{consignment_id}", response_model=ConsignmentOut)
 async def get_consignment(consignment_id: str, user: CurrentUser = Depends(get_current_user)):
-    # Staff/admin can look up any consignment (needed by Day 9's review
-    # queue); a customer is scoped to their own by passing their id.
     client = get_supabase_admin()
     customer_scope = user.id if user.role == "customer" else None
     result = consignment_service.get_consignment(client, consignment_id, customer_scope)
     return ConsignmentOut(**result)
+
+
+@router.post("/{request_id}/physical-authentication", response_model=PhysicalAuthOut)
+async def set_physical_auth_pending(
+    request_id: str,
+    payload: PhysicalAuthCreate,
+    user: CurrentUser = Depends(get_current_user),
+):
+    if user.role not in ("staff", "admin"):
+        raise HTTPException(403, "Only staff can schedule physical authentication")
+    client = get_supabase_admin()
+    row = {
+        **payload.model_dump(exclude_none=True),
+        "request_id": request_id,
+        "staff_id": user.id,
+        "branch_id": payload.branch_id or getattr(user, "branch_id", None),
+    }
+    resp = client.table("physical_authentications").insert(row).execute()
+    return PhysicalAuthOut(**resp.data[0])
+
+
+@router.patch("/physical-authentication/{physical_auth_id}", response_model=PhysicalAuthOut)
+async def decide_physical_auth(
+    physical_auth_id: str,
+    payload: PhysicalAuthDecision,
+    user: CurrentUser = Depends(get_current_user),
+):
+    if user.role not in ("staff", "admin"):
+        raise HTTPException(403, "Only staff can decide")
+    client = get_supabase_admin()
+    data = {
+        "result": payload.result,
+        "notes": payload.notes,
+        "decided_at": payload.decided_at or datetime.now(timezone.utc).isoformat(),
+    }
+    resp = client.table("physical_authentications").update(data).eq("id", physical_auth_id).execute()
+    return PhysicalAuthOut(**resp.data[0])

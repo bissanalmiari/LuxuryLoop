@@ -17,6 +17,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -37,7 +38,11 @@ export default function LoginForm() {
     } catch {
       // fall back to JWT metadata role
     }
-    router.push(role === "admin" ? "/admin" : "/");
+const target =
+  role === "staff" ? "/staff" :
+  role === "admin" ? "/admin" :
+  "/";
+router.push(target);
     router.refresh();
   }
 

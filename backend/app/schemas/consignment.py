@@ -35,3 +35,18 @@ class ConsignmentOut(BaseModel):
 
 class ConsignmentListResponse(BaseModel):
     consignments: List[ConsignmentOut]
+
+class StaffConsignmentOut(BaseModel):
+    id: str
+    request_id: str
+    status: str | None = None
+    notes: str | None = None
+    appointment_at: str | None = None
+    decided_at: str | None = None
+    branch_name: str | None = None
+    customer_id: str | None = None
+    customer_name: str | None = None
+    title: str | None = None
+    confidence_score: float | None = None
+    suspicious_indicators: List[str] = []
+    explanation: str | None = None

@@ -70,3 +70,25 @@ export interface InventoryMovement {
   moved_at: string;
   created_at: string;
 }
+
+export interface StaffConsignment {
+  id: string;
+  request_id: string;
+  status: string | null;
+  notes: string | null;
+  appointment_at: string | null;
+  decided_at: string | null;
+  branch_name: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  title: string | null;
+  confidence_score?: number | null;
+  suspicious_indicators?: string[] | null;
+  explanation?: string | null;
+}
+
+export interface PhysicalAuthDecision {
+  result: "authenticated" | "rejected";
+  notes?: string | null;
+  decided_at?: string | null;
+}

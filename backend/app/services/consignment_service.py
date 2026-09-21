@@ -50,3 +50,39 @@ def list_my_consignments(client: Client, customer_id: str) -> list[dict]:
         .execute()
     )
     return [_enrich(client, row) for row in (resp.data or [])]
+
+def list_staff_queue(client):
+    rows = (
+        client.table("physical_authentications")
+        .select(
+            "id, request_id, branch_id, branch:branches(name), "
+            "appointment_at, result, notes, decided_at, "
+            "confidence_score, suspicious_indicators, explanation, "
+            "request:authentication_requests(status, customer_id, model, description, customer:users(full_name))"
+        )
+        .order("appointment_at", desc=True)
+        .execute()
+    )
+    out = []
+    for pa in rows.data or []:
+        req = pa.pop("request", {}) or {}
+        branch = pa.pop("branch", {}) or {}
+        cust = (req.pop("customer", {}) or {}) if isinstance(req, dict) else {}
+        out.append(
+            {
+                "id": pa["id"],
+                "request_id": pa["request_id"],
+                "status": req.get("status"),
+                "notes": pa.get("notes"),
+                "appointment_at": pa.get("appointment_at"),
+                "decided_at": pa.get("decided_at"),
+                "branch_name": branch.get("name"),
+                "customer_id": req.get("customer_id"),
+                "customer_name": cust.get("full_name") or cust.get("name"),
+                "title": req.get("model") or req.get("description") or "Untitled",
+                "confidence_score": pa.get("confidence_score"),
+                "suspicious_indicators": pa.get("suspicious_indicators") or [],
+                "explanation": pa.get("explanation"),
+            }
+        )
+    return out
