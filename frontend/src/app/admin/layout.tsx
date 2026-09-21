@@ -54,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       group: "OPERATIONS",
       items: [
-        { label: "Consignments", icon: "📋", href: null },
+        { label: "Consignments", icon: "📋", href: "/admin/consignments" },
         { label: "Orders", icon: "🛍", href: "/admin/orders" },
         { label: "Customers", icon: "👥", href: null },
       ],

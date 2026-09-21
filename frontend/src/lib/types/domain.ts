@@ -92,3 +92,20 @@ export interface PhysicalAuthDecision {
   notes?: string | null;
   decided_at?: string | null;
 }
+
+export interface PhysicalAuthCreate {
+  branch_id?: string | null;
+  appointment_at?: string | null;
+  notes?: string | null;
+}
+
+export interface PhysicalAuthOut {
+  id: string;
+  request_id: string;
+  branch_id: string | null;
+  staff_id: string | null;
+  appointment_at: string | null;
+  result: string | null;
+  notes: string | null;
+  decided_at: string | null;
+}
