@@ -31,10 +31,24 @@ export default function ShopPage() {
       fetch(`${API_BASE}/brands`).then((r) => r.json()).catch(() => []),
     ]).then(([b, c, br]) => {
       setBranches(b); setCategories(c); setBrands(br);
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryName = urlParams.get("category");
+      const selectedCategory = categoryName
+        ? c.find((category: Category) => category.name.toLowerCase() === categoryName.toLowerCase())
+        : undefined;
+      setCategoryFilter(selectedCategory ? [selectedCategory.id] : []);
     });
   }, []);
 
   useEffect(() => { setPage(1); }, [categoryFilter, brandFilter, branchFilter, minPrice, maxPrice, search]);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const cat = q.get("category_id");
+    const br = q.get("branch_id");
+    if (cat) setCategoryFilter([cat]);
+    if (br) setBranchFilter(br);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

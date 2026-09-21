@@ -8,6 +8,7 @@ class OrderItemOut(BaseModel):
     item_id: str
     title: str
     unit_price: float
+    image: str = ""
 
 
 class OrderOut(BaseModel):

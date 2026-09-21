@@ -1,10 +1,25 @@
-const branches = [
-  { name: "Beirut — Downtown", address: "Rue Gouraud, Gemmayzeh", country: "Lebanon", phone: "+961 1 456 789", imageClass: "bg-taupe" },
-  { name: "Jounieh — Kaslik", address: "Kaslik Highway", country: "Lebanon", phone: "+961 9 234 567", imageClass: "bg-grayx" },
-  { name: "Tripoli — Azmi St.", address: "Azmi Street", country: "Lebanon", phone: "+961 6 345 678", imageClass: "bg-gold" },
-];
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Branch } from "@/lib/types/domain";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 export function Branches() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/branches`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setBranches(data.filter((b) => b.is_active));
+      })
+      .catch(() => setBranches([]));
+  }, []);
+
+  if (branches.length === 0) return null;
+
   return (
     <section className="py-14 max-w-[1240px] mx-auto px-8" id="about">
       <div className="flex items-end justify-between gap-6 mb-8">
@@ -16,14 +31,23 @@ export function Branches() {
       </div>
       <div className="grid grid-cols-3 gap-7">
         {branches.map((b) => (
-          <div key={b.name} className="card overflow-hidden">
-            <div className={`h-[140px] ${b.imageClass}`} />
+          <Link key={b.id} href={`/shop?branch_id=${b.id}`} className="card overflow-hidden">
+            <div className="relative h-[140px] bg-[#F1EEE7] flex items-center justify-center overflow-hidden">
+              {b.image_url ? (
+                <img src={b.image_url} alt={b.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-2/5 h-2/5 bg-taupe" />
+              )}
+            </div>
             <div className="p-5">
               <h4 className="text-[15px] font-semibold mb-1.5">{b.name}</h4>
-              <p className="text-[13px] text-grayx mb-1">{b.address} · {b.country}</p>
-              <p className="text-[13px] text-grayx">{b.phone}</p>
+              <p className="text-[13px] text-grayx mb-1">
+                {b.address || b.city || ""}
+                {b.country ? ` · ${b.country}` : ""}
+              </p>
+              <p className="text-[13px] text-grayx">{b.phone ?? "\u00a0"}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

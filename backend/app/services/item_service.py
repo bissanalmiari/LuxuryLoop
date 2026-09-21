@@ -5,8 +5,11 @@ from fastapi import HTTPException
 from app.schemas.product import ALLOWED_STATUS_TRANSITIONS
 
 
+ITEM_EMBED = "*,brands(name),categories(name),branches(name,country),item_images(file_url,sort_order)"
+
+
 def _build_item_query(client: Client, filters: dict, page: int, page_size: int) -> dict:
-    q = client.table("items").select("*", count="exact")
+    q = client.table("items").select(ITEM_EMBED, count="exact")
 
     if filters.get("category_id"):
         q = q.eq("category_id", filters["category_id"])
@@ -28,42 +31,38 @@ def _build_item_query(client: Client, filters: dict, page: int, page_size: int) 
     return q
 
 
-def _resolve_names(client: Client, item: dict) -> dict:
-    brand_name = category_name = branch_name = branch_country = ""
-    if item.get("brand_id"):
-        b = client.table("brands").select("name").eq("id", item["brand_id"]).execute()
-        if b.data:
-            brand_name = b.data[0]["name"]
-    if item.get("category_id"):
-        c = client.table("categories").select("name").eq("id", item["category_id"]).execute()
-        if c.data:
-            category_name = c.data[0]["name"]
-    if item.get("branch_id"):
-        br = client.table("branches").select("name, country").eq("id", item["branch_id"]).execute()
-        if br.data:
-            branch_name = br.data[0]["name"]
-            branch_country = br.data[0].get("country") or ""
-
-    item["brand_name"] = brand_name
-    item["category_name"] = category_name
-    item["branch_name"] = branch_name
-    item["branch_country"] = branch_country
-    return item
-
-
 def _get_image_urls(client: Client, item_id: str) -> List[str]:
     resp = client.table("item_images").select("file_url").eq("item_id", item_id).order("sort_order").execute()
     return [img["file_url"] for img in resp.data] if resp.data else []
 
 
-def _enrich_item(client: Client, item: dict) -> dict:
-    item = _resolve_names(client, item)
-    item["image_urls"] = _get_image_urls(client, item["id"])
+def _parse_item(item: dict) -> dict:
+    item = dict(item)
+    brand = item.pop("brands", None) or {}
+    category = item.pop("categories", None) or {}
+    branch = item.pop("branches", None) or {}
+    images = item.pop("item_images", None) or []
+    item["brand_name"] = brand.get("name") or ""
+    item["category_name"] = category.get("name") or ""
+    item["branch_name"] = branch.get("name") or ""
+    item["branch_country"] = branch.get("country") or ""
+    item["image_urls"] = [
+        img["file_url"] for img in sorted(images, key=lambda x: x.get("sort_order") or 0)
+    ]
     return item
 
 
+def _enrich_item(client: Client, item: dict) -> dict:
+    row = item
+    if not any(k in item for k in ("brands", "categories", "branches", "item_images")):
+        resp = client.table("items").select(ITEM_EMBED).eq("id", item["id"]).single().execute()
+        if resp.data:
+            row = resp.data
+    return _parse_item(row)
+
+
 def _get_item_or_404(client: Client, item_id: str) -> dict:
-    resp = client.table("items").select("*").eq("id", item_id).single().execute()
+    resp = client.table("items").select(ITEM_EMBED).eq("id", item_id).single().execute()
     if not resp.data:
         raise HTTPException(status_code=404, detail="Item not found")
     return resp.data

@@ -27,6 +27,7 @@ export function Navbar() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
+          <Link href="/orders" className="text-sm font-medium hover:text-gold">Orders</Link>
           <Link href="/cart" className="text-sm font-medium hover:text-gold">Cart</Link>
           <Link href="/login" className="text-sm font-medium hover:text-gold">Log in</Link>
         </div>

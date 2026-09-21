@@ -18,7 +18,7 @@ export function Categories() {
       </div>
       <div className="grid grid-cols-4 gap-6">
         {categories.map(({ name, imageClass }) => (
-          <Link key={name} href="/shop" className="card">
+          <Link key={name} href={`/shop?category=${encodeURIComponent(name)}`} className="card">
             <div className="aspect-square bg-[#F1EEE7] flex items-center justify-center">
               <div className={`w-3/5 h-3/5 ${imageClass}`} />
             </div>

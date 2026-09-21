@@ -7,6 +7,7 @@ export interface Branch {
   phone: string | null;
   email: string | null;
   is_active: boolean;
+  image_url: string | null;
   created_at: string | null;
 }
 

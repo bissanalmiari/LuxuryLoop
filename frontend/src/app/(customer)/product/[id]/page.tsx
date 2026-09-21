@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Product } from "@/lib/types/domain";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
+import { ProductViewer360 } from "@/components/product/ProductViewer360";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -19,6 +21,8 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [mode360, setMode360] = useState(false);
+
 
   useEffect(() => {
     fetch(`${API_BASE}/products/${id}`)
@@ -83,36 +87,56 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-[1240px] mx-auto px-8 py-10">
-      <p className="text-xs text-grayx mb-8">
-        <Link href="/shop" className="hover:text-charcoal">Shop</Link>
-        {product.category_name && <> / <span>{product.category_name}</span></>}
-        {" "}/ <span className="text-charcoal">{product.title}</span>
-      </p>
+      <div className="flex items-center gap-4 mb-8">
+        <Link href="/shop" className="inline-flex items-center gap-1.5 text-sm text-grayx hover:text-charcoal">
+          <ArrowLeft size={16} /> Back to shop
+        </Link>
+        <span className="text-[15px] text-beige">|</span>
+        <p className="text-xs text-grayx">
+          <Link href="/shop" className="hover:text-charcoal">Shop</Link>
+          {product.category_name && <> / <span>{product.category_name}</span></>}
+          {" "}/ <span className="text-charcoal">{product.title}</span>
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-12">
-        {/* Gallery */}
+                {/* Gallery */}
         <div>
-          <div className="aspect-square bg-ivory border border-beige flex items-center justify-center overflow-hidden mb-3">
-            {images[activeImage] ? (
-              <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-grayx text-sm">No image</span>
-            )}
-          </div>
-          {images.length > 1 && (
-            <div className="grid grid-cols-4 gap-3">
-              {images.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImage(i)}
-                  className={`aspect-square bg-ivory border overflow-hidden ${
-                    i === activeImage ? "border-gold" : "border-beige"
-                  }`}
-                >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+          {mode360 && images.length >= 3 ? (
+            <ProductViewer360 images={images} title={product.title} onExit={() => setMode360(false)} />
+          ) : (
+            <>
+              <div className="relative aspect-square bg-ivory border border-beige flex items-center justify-center overflow-hidden mb-3">
+                {images[activeImage] ? (
+                  <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-grayx text-sm">No image</span>
+                )}
+                {images.length >= 3 && (
+                  <button
+                    onClick={() => setMode360(true)}
+                    className="absolute top-3 right-3 z-10 text-[11px] font-semibold px-3 py-2 bg-gold text-charcoal border border-beige cursor-pointer hover:bg-[#B4924E]"
+                  >
+                    360° View
+                  </button>
+                )}
+              </div>
+              {images.length > 1 && (
+                <div className="grid grid-cols-4 gap-3">
+                  {images.map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImage(i)}
+                      className={`aspect-square bg-ivory border overflow-hidden ${
+                        i === activeImage ? "border-gold" : "border-beige"
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

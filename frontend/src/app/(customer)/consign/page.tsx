@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authedFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
@@ -58,14 +59,22 @@ export default function ConsignPage() {
       }
 
       const documents: { document_type: string; file_url: string }[] = [];
+      let uploadFailed = false;
       for (const file of photos) {
         const url = await uploadFile(file, "consignment-photos");
         if (url) documents.push({ document_type: "image", file_url: url });
+        else uploadFailed = true;
       }
       if (doc) {
         const url = await uploadFile(doc, "consignment-docs");
         const type = doc.type === "application/pdf" ? "invoice" : "certificate";
         if (url) documents.push({ document_type: type, file_url: url });
+        else uploadFailed = true;
+      }
+      if (uploadFailed) {
+        setError("Some photos failed to upload. Please check your connection and try again.");
+        setSubmitting(false);
+        return;
       }
 
       const result = await authedFetch("/consignments", {
@@ -88,8 +97,15 @@ export default function ConsignPage() {
 
   return (
     <div className="max-w-[700px] mx-auto px-8 py-14">
-      <p className="text-xs text-gold font-semibold tracking-wide mb-2">SELL WITH US</p>
-      <h1 className="font-serif text-3xl font-medium mb-2">Consign an item</h1>
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <div>
+          <p className="text-xs text-gold font-semibold tracking-wide mb-2">SELL WITH US</p>
+          <h1 className="font-serif text-3xl font-medium">Consign an item</h1>
+        </div>
+        <Link href="/consign/status" className="text-sm font-medium text-gold hover:underline whitespace-nowrap mt-1">
+          Track my consignments
+        </Link>
+      </div>
       <p className="text-sm text-grayx mb-8">
         Tell us about your piece. Our AI gives a preliminary screening instantly, then a specialist confirms authenticity in person.
       </p>

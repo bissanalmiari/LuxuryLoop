@@ -9,19 +9,21 @@ _FULFILLMENT_OK = ("delivery", "pickup")
 def _fetch_items(client: Client, order_id: str) -> List[dict]:
     rows = (
         client.table("order_items")
-        .select("id, item_id, unit_price, items(title)")
+        .select("id, item_id, unit_price, items(title, item_images(file_url))")
         .eq("order_id", order_id)
         .execute()
     ).data or []
     items = []
     for row in rows:
         item = row.get("items") or {}
+        images = item.get("item_images") or []
         items.append(
             {
                 "id": row["id"],
                 "item_id": row["item_id"],
                 "title": item.get("title") or "",
                 "unit_price": float(row["unit_price"]),
+                "image": (images[0].get("file_url") if images else "") or "",
             }
         )
     return items
@@ -130,7 +132,9 @@ def checkout(
             raise HTTPException(status_code=400, detail=f"Checkout failed: {msg}")
 
         data = result.data
-        if isinstance(data, list):
+        if isinstance(data, str):
+            order_ids.append(data)
+        elif isinstance(data, list):
             order_ids.extend(d for d in data if isinstance(d, str))
         elif isinstance(data, dict):
             order_ids.extend(v for v in data.values() if isinstance(v, str))
