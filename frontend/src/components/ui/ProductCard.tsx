@@ -1,5 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin, Heart } from "lucide-react";
+import { authedFetch } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 
 interface ProductCardProps {
   brand: string;
@@ -12,6 +17,45 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ brand, title, price, location, href, image, imageClass = "bg-taupe" }: ProductCardProps) {
+  const itemId = href.replace(/^\/product\//, "");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    authedFetch("/favorites")
+      .then((d) => {
+        if (active && Array.isArray(d?.favorites)) {
+          setSaved(d.favorites.some((f: { item_id: string }) => f.item_id === itemId));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [itemId]);
+
+  async function toggleSaved(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      window.location.href = "/login";
+      return;
+    }
+    try {
+      if (saved) {
+        await authedFetch(`/favorites/${itemId}`, { method: "DELETE" });
+        setSaved(false);
+      } else {
+        await authedFetch("/favorites", { method: "POST", body: JSON.stringify({ item_id: itemId }) });
+        setSaved(true);
+      }
+    } catch {
+      /* keep current state */
+    }
+  }
+
   return (
     <div className="card">
       <Link href={href} className="block relative aspect-square bg-[#F1EEE7] flex items-center justify-center overflow-hidden">
@@ -21,10 +65,14 @@ export function ProductCard({ brand, title, price, location, href, image, imageC
           <div className={`w-3/5 h-3/5 ${imageClass}`} />
         )}
         <button
-          aria-label="Add to wishlist"
-          className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center"
+          type="button"
+          aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+          onClick={toggleSaved}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            saved ? "bg-white text-[#B54444]" : "bg-white/90 text-grayx hover:text-charcoal"
+          }`}
         >
-          <Heart size={15} />
+          <Heart size={15} fill={saved ? "currentColor" : "none"} />
         </button>
       </Link>
       <div className="p-[18px]">

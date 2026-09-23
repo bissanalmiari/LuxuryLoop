@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import auth_routes, admin_auth, reference_data, product, inventory, consignment, cart, order, staff
+from app.api.v1.routes import auth_routes, admin_auth, reference_data, product, inventory, consignment, cart, order, staff, reports, favorites
 
 api_router = APIRouter()
 api_router.include_router(auth_routes.router)
@@ -14,3 +14,5 @@ api_router.include_router(consignment.router)
 api_router.include_router(cart.router)
 api_router.include_router(order.router)
 api_router.include_router(staff.router)
+api_router.include_router(reports.router)
+api_router.include_router(favorites.router)

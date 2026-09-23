@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Users,
   LogOut,
+  Home,
 } from "lucide-react";
 
 function initialsOf(name: string) {
@@ -67,7 +68,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { label: "Consignments", icon: ClipboardList, href: "/admin/consignments" },
         { label: "Orders", icon: ShoppingBag, href: "/admin/orders" },
-        { label: "Customers", icon: Users, href: null },
+        { label: "Sales", icon: ShoppingBag, href: "/admin/sales" },
+        { label: "Customers", icon: Users, href: "/admin/customers" },
       ],
     },
   ];
@@ -139,6 +141,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <LogOut size={16} strokeWidth={1.8} />
           </button>
+          <Link
+            href="/"
+            className="text-[#8A867E] hover:text-gold"
+            aria-label="Go to home"
+            title="Go to home"
+          >
+            <Home size={16} strokeWidth={1.8} />
+          </Link>
         </div>
       </aside>
       <main className="flex-1 min-w-0 px-10 py-8">{children}</main>

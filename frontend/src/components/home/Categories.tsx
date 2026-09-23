@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { ShoppingBag, Clock, Gem, Footprints } from "lucide-react";
 
 const categories = [
-  { name: "Handbags", imageClass: "bg-charcoal" },
-  { name: "Watches", imageClass: "bg-gold" },
-  { name: "Jewelry", imageClass: "bg-taupe" },
-  { name: "Shoes", imageClass: "bg-grayx" },
+  { name: "Handbags", icon: ShoppingBag },
+  { name: "Watches", icon: Clock },
+  { name: "Jewelry", icon: Gem },
+  { name: "Shoes", icon: Footprints },
 ];
 
 export function Categories() {
@@ -17,10 +18,10 @@ export function Categories() {
         </div>
       </div>
       <div className="grid grid-cols-4 gap-6">
-        {categories.map(({ name, imageClass }) => (
-          <Link key={name} href={`/shop?category=${encodeURIComponent(name)}`} className="card">
+        {categories.map(({ name, icon: Icon }) => (
+          <Link key={name} href={`/shop?category=${encodeURIComponent(name)}`} className="card group">
             <div className="aspect-square bg-[#F1EEE7] flex items-center justify-center">
-              <div className={`w-3/5 h-3/5 ${imageClass}`} />
+              <Icon size={44} strokeWidth={1.4} className="text-grayx group-hover:text-gold transition-colors" />
             </div>
             <div className="p-[18px] text-center font-semibold text-[15px]">{name}</div>
           </Link>

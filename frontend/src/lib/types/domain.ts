@@ -114,3 +114,26 @@ export interface PhysicalAuthOut {
   notes: string | null;
   decided_at: string | null;
 }
+
+export interface FavoriteItem {
+  id: string;
+  item_id: string;
+  title: string;
+  brand_name: string;
+  branch_name: string;
+  selling_price: number;
+  status: string;
+  image_url: string | null;
+  created_at: string | null;
+}
+
+export interface CustomerSummary {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  orders_count: number;
+  consignments_count: number;
+  total_spent: number;
+  joined_at: string | null;
+}

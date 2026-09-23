@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
 import { Product } from "@/lib/types/domain";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +22,8 @@ export default function ProductDetailPage() {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [mode360, setMode360] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const favoriteRequest = useRef(false);
 
 
   useEffect(() => {
@@ -32,6 +34,12 @@ export default function ProductDetailPage() {
       })
       .then(setProduct)
       .catch(() => setNotFound(true));
+  }, [id]);
+
+  useEffect(() => {
+    authedFetch("/favorites")
+      .then((data) => setIsFavorite((data.favorites || []).some((favorite: { item_id: string }) => favorite.item_id === id)))
+      .catch(() => setIsFavorite(false));
   }, [id]);
 
   async function handleAddToCart() {
@@ -53,6 +61,31 @@ export default function ProductDetailPage() {
       alert(e instanceof Error ? e.message : "Could not add to cart");
     }
     setAdding(false);
+  }
+
+  async function toggleFavorite() {
+    if (!product || favoriteRequest.current) return;
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      router.push(`/login?next=/product/${product.id}`);
+      return;
+    }
+
+    const nextValue = !isFavorite;
+  favoriteRequest.current = true;
+  setIsFavorite(nextValue);
+    try {
+      await authedFetch(nextValue ? "/favorites" : `/favorites/${product.id}`, {
+        method: nextValue ? "POST" : "DELETE",
+        ...(nextValue ? { body: JSON.stringify({ item_id: product.id }) } : {}),
+      });
+    } catch {
+      alert("Could not update favorites. Please try again.");
+      setIsFavorite(!nextValue);
+    } finally {
+      favoriteRequest.current = false;
+    }
   }
 
   if (notFound)
@@ -175,8 +208,14 @@ export default function ProductDetailPage() {
             >
               {product.status !== "available" ? "Not Available" : added ? "Added to Cart" : adding ? "Adding..." : "Add to cart"}
             </Button>
-            <button className="w-11 h-11 border border-beige flex items-center justify-center hover:border-gold shrink-0" aria-label="Wishlist">
-              ♡
+            <button
+              type="button"
+              onClick={toggleFavorite}
+              className={`w-11 h-11 border flex items-center justify-center shrink-0 ${isFavorite ? "border-[#B54444] text-[#B54444]" : "border-beige hover:border-gold text-charcoal"}`}
+              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              aria-pressed={isFavorite}
+            >
+              <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
             </button>
           </div>
         </div>

@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { Product, ProductListResponse, Branch, Category, Brand } from "@/lib/types/domain";
+import { authedFetch } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const PAGE_SIZE = 8;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 export default function ShopPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const favoriteRequests = useRef(new Set<string>());
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -23,6 +30,12 @@ export default function ShopPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+
+  useEffect(() => {
+    authedFetch("/favorites")
+      .then((data) => setFavoriteIds((data.favorites || []).map((favorite: { item_id: string }) => favorite.item_id)))
+      .catch(() => setFavoriteIds([]));
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -86,6 +99,31 @@ export default function ShopPage() {
 
   function toggle(list: string[], set: (v: string[]) => void, id: string) {
     set(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  }
+
+  async function toggleFavorite(itemId: string) {
+    if (favoriteRequests.current.has(itemId)) return;
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      router.push(`/login?next=/shop`);
+      return;
+    }
+
+    const isFavorite = favoriteIds.includes(itemId);
+    favoriteRequests.current.add(itemId);
+    setFavoriteIds((current) => isFavorite ? current.filter((id) => id !== itemId) : [...current, itemId]);
+    try {
+      await authedFetch(isFavorite ? `/favorites/${itemId}` : "/favorites", {
+        method: isFavorite ? "DELETE" : "POST",
+        ...(isFavorite ? {} : { body: JSON.stringify({ item_id: itemId }) }),
+      });
+    } catch {
+      setFavoriteIds((current) => isFavorite ? [...current, itemId] : current.filter((id) => id !== itemId));
+      alert("Could not update favorites. Please try again.");
+    } finally {
+      favoriteRequests.current.delete(itemId);
+    }
   }
 
   return (
@@ -223,6 +261,14 @@ export default function ShopPage() {
                       )}
                     </div>
                     <button
+                      type="button"
+                      aria-label={favoriteIds.includes(p.id) ? "Remove from favorites" : "Add to favorites"}
+                      aria-pressed={favoriteIds.includes(p.id)}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleFavorite(p.id);
+                      }}
                       style={{
                         position: "absolute",
                         top: 12,
@@ -236,9 +282,11 @@ export default function ShopPage() {
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: 14,
+                        color: favoriteIds.includes(p.id) ? "#B54444" : "#1C1C1C",
+                        cursor: "pointer",
                       }}
                     >
-                      ♡
+                      <Heart size={16} fill={favoriteIds.includes(p.id) ? "currentColor" : "none"} />
                     </button>
                   </Link>
                   <div style={{ padding: 18 }}>
@@ -254,10 +302,11 @@ export default function ShopPage() {
                         style={{
                           background: "#C6A15B",
                           color: "#1C1C1C",
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: 600,
-                          padding: "10px 16px",
+                          padding: "8px 12px",
                           textDecoration: "none",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         View details
