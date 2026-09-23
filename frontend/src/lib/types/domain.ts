@@ -76,6 +76,8 @@ export interface StaffConsignment {
   request_id: string;
   status: string | null;
   acquisition_intent?: string | null;
+  preferred_branch_id?: string | null;
+  preferred_branch_name?: string | null;
   notes: string | null;
   appointment_at: string | null;
   decided_at: string | null;

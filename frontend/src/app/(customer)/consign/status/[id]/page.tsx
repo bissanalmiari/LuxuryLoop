@@ -155,6 +155,11 @@ export default function ConsignStatusPage() {
           <p className="text-xs text-grayx mt-4">
             Submitted {new Date(data.submitted_at).toLocaleDateString()} · Reference #{data.id.slice(0, 8).toUpperCase()}
           </p>
+          {data.preferred_branch_name && (
+            <p className="text-xs text-grayx mt-2">
+              Inspection branch: <span className="text-charcoal font-semibold">{data.preferred_branch_name}</span>
+            </p>
+          )}
         </div>
       </div>
 

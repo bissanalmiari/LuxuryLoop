@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class ConsignmentDocumentIn(BaseModel):
@@ -7,13 +7,14 @@ class ConsignmentDocumentIn(BaseModel):
 
 class ConsignmentCreate(BaseModel):
     acquisition_intent: str = "consignment"  # "shop_buy" | "consignment"
-    category_id: Optional[str] = None
-    brand_id: Optional[str] = None
-    model: Optional[str] = None
+    preferred_branch_id: str
+    category_id: str
+    brand_id: str
+    model: str = Field(min_length=1)
     condition: Optional[str] = None
     description: Optional[str] = None
     serial_reference: Optional[str] = None
-    documents: List[ConsignmentDocumentIn] = []
+    documents: List[ConsignmentDocumentIn] = Field(min_length=1)
 
 class ConsignmentDocumentOut(BaseModel):
     id: str
@@ -40,6 +41,8 @@ class ConsignmentOut(BaseModel):
     serial_reference: Optional[str] = None
     status: str
     submitted_at: str
+    preferred_branch_id: Optional[str] = None
+    preferred_branch_name: str = ""
     documents: List[ConsignmentDocumentOut] = []
     ai_assessment: Optional[AIAssessmentOut] = None  
 
@@ -54,6 +57,8 @@ class StaffConsignmentOut(BaseModel):
     appointment_at: str | None = None
     decided_at: str | None = None
     branch_name: str | None = None
+    preferred_branch_id: str | None = None
+    preferred_branch_name: str | None = None
     customer_id: str | None = None
     customer_name: str | None = None
     title: str | None = None

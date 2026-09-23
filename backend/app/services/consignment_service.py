@@ -5,12 +5,16 @@ from fastapi import HTTPException
 def _enrich(client: Client, row: dict) -> dict:
     row["brand_name"] = ""
     row["category_name"] = ""
+    row["preferred_branch_name"] = ""
     if row.get("brand_id"):
         b = client.table("brands").select("name").eq("id", row["brand_id"]).execute().data
         row["brand_name"] = b[0]["name"] if b else ""
     if row.get("category_id"):
         c = client.table("categories").select("name").eq("id", row["category_id"]).execute().data
         row["category_name"] = c[0]["name"] if c else ""
+    if row.get("preferred_branch_id"):
+        br = client.table("branches").select("name").eq("id", row["preferred_branch_id"]).execute().data
+        row["preferred_branch_name"] = br[0]["name"] if br else ""
     docs = client.table("request_documents").select("id, document_type, file_url").eq("request_id", row["id"]).execute().data
     row["documents"] = docs or []
 
@@ -29,6 +33,8 @@ def _enrich(client: Client, row: dict) -> dict:
 
 def create_consignment(client: Client, customer_id: str, data: dict) -> dict:
     documents = data.pop("documents", [])
+    if not any(document.get("document_type") == "image" for document in documents):
+        raise HTTPException(422, "At least one item photo is required")
     data["customer_id"] = customer_id
     resp = client.table("authentication_requests").insert(data).execute()
     if not resp.data:
@@ -190,11 +196,24 @@ def list_staff_queue(client):
     """
     requests = (
         client.table("authentication_requests")
-        .select("id, status, acquisition_intent, model, description, customer_id, submitted_at, customer:users!authentication_requests_customer_id_fkey(full_name)")
+        .select("id, status, acquisition_intent, preferred_branch_id, model, description, customer_id, submitted_at, customer:users!authentication_requests_customer_id_fkey(full_name)")
         .in_("status", ["submitted", "under_review", "pending_physical_authentication"])
         .order("submitted_at", desc=True)
         .execute()
     )
+
+    preferred_branch_names = {}
+    preferred_branch_ids = {req["preferred_branch_id"] for req in (requests.data or []) if req.get("preferred_branch_id")}
+    if preferred_branch_ids:
+        pref_rows = (
+            client.table("branches")
+            .select("id, name")
+            .in_("id", list(preferred_branch_ids))
+            .execute()
+            .data
+            or []
+        )
+        preferred_branch_names = {b["id"]: b["name"] for b in pref_rows}
 
     out = []
     for req in requests.data or []:
@@ -228,6 +247,8 @@ def list_staff_queue(client):
             "request_id": req["id"],
             "status": req.get("status"),
             "acquisition_intent": req.get("acquisition_intent") or "consignment",
+            "preferred_branch_id": req.get("preferred_branch_id"),
+            "preferred_branch_name": preferred_branch_names.get(req.get("preferred_branch_id")) if req.get("preferred_branch_id") else None,
             "notes": pa.get("notes"),
             "appointment_at": pa.get("appointment_at"),
             "decided_at": pa.get("decided_at"),

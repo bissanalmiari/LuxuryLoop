@@ -77,10 +77,27 @@ async def set_physical_auth_pending(
     if user.role not in ("staff", "admin"):
         raise HTTPException(403, "Only staff can schedule physical authentication")
     client = get_supabase_admin()
-    branch_id = payload.branch_id or getattr(user, "branch_id", None)
+    branch_id = payload.branch_id
+
+    # The branch the customer chose in the consign form takes priority.
     if not branch_id:
-        u = client.table("users").select("branch_id").eq("id", user.id).single().execute().data
-        branch_id = (u or {}).get("branch_id")
+        req = (
+            client.table("authentication_requests")
+            .select("preferred_branch_id")
+            .eq("id", request_id)
+            .single()
+            .execute()
+            .data
+            or {}
+        )
+        branch_id = req.get("preferred_branch_id")
+
+    # Last resort: the scheduling staff member's own branch.
+    if not branch_id:
+        branch_id = getattr(user, "branch_id", None)
+        if not branch_id:
+            u = client.table("users").select("branch_id").eq("id", user.id).single().execute().data
+            branch_id = (u or {}).get("branch_id")
     row = {
         **payload.model_dump(exclude_none=True),
         "request_id": request_id,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authedFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { Branch } from "@/lib/types/domain";
 
 interface Ref { id: string; name: string; }
 
@@ -20,8 +21,10 @@ export default function ConsignPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Ref[]>([]);
   const [brands, setBrands] = useState<Ref[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [brandId, setBrandId] = useState("");
+  const [preferredBranchId, setPreferredBranchId] = useState("");
   const [model, setModel] = useState("");
   const [condition, setCondition] = useState("Excellent");
   const [description, setDescription] = useState("");
@@ -31,10 +34,31 @@ export default function ConsignPage() {
   const [doc, setDoc] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({
+    category: false,
+    brand: false,
+    branch: false,
+    model: false,
+    photos: false,
+  });
+
+  const validation = {
+    category: touched.category && !categoryId ? "Please select a category." : "",
+    brand: touched.brand && !brandId ? "Please select a brand." : "",
+    branch: touched.branch && !preferredBranchId ? "Please select a branch." : "",
+    model: touched.model && !model.trim() ? "Please enter the item model or name." : "",
+    photos: touched.photos && photos.length === 0 ? "Please add at least one item photo." : "",
+  };
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/categories`).then((r) => r.json()).then(setCategories);
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/brands`).then((r) => r.json()).then(setBrands);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/branches`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setBranches(data.filter((b: Branch) => b.is_active));
+      })
+      .catch(() => setBranches([]));
   }, []);
 
   function handlePhotos(e: React.ChangeEvent<HTMLInputElement>) {
@@ -49,6 +73,15 @@ export default function ConsignPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTouched({ category: true, brand: true, branch: true, model: true, photos: true });
+    if (!categoryId || !brandId || !preferredBranchId || !model.trim()) {
+      setError("Please select a category, brand, branch, and enter the item model or name.");
+      return;
+    }
+    if (photos.length === 0) {
+      setError("Please add at least one photo of the item.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -82,6 +115,7 @@ export default function ConsignPage() {
         method: "POST",
         body: JSON.stringify({
           acquisition_intent: intent,
+          preferred_branch_id: preferredBranchId || null,
           category_id: categoryId || null,
           brand_id: brandId || null,
           model,
@@ -115,25 +149,28 @@ export default function ConsignPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Category</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-3 py-2.5 border border-beige text-sm bg-white outline-none">
+            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Category <span className="text-red">*</span></label>
+            <select required value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setTouched((current) => ({ ...current, category: true })); }} className={`w-full px-3 py-2.5 border text-sm bg-white outline-none ${validation.category ? "border-red" : "border-beige"}`}>
               <option value="">Select</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            {validation.category && <p className="mt-1 text-xs text-red">{validation.category}</p>}
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Brand</label>
-            <select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="w-full px-3 py-2.5 border border-beige text-sm bg-white outline-none">
+            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Brand <span className="text-red">*</span></label>
+            <select required value={brandId} onChange={(e) => { setBrandId(e.target.value); setTouched((current) => ({ ...current, brand: true })); }} className={`w-full px-3 py-2.5 border text-sm bg-white outline-none ${validation.brand ? "border-red" : "border-beige"}`}>
               <option value="">Select</option>
               {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
+            {validation.brand && <p className="mt-1 text-xs text-red">{validation.brand}</p>}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Model / name</label>
-            <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. Classic Flap Bag, Medium" className="w-full px-3 py-2.5 border border-beige text-sm outline-none focus:border-gold" />
+            <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Model / name <span className="text-red">*</span></label>
+            <input required value={model} onChange={(e) => { setModel(e.target.value); setTouched((current) => ({ ...current, model: true })); }} onBlur={() => setTouched((current) => ({ ...current, model: true }))} placeholder="e.g. Classic Flap Bag, Medium" className={`w-full px-3 py-2.5 border text-sm outline-none focus:border-gold ${validation.model ? "border-red" : "border-beige"}`} />
+            {validation.model && <p className="mt-1 text-xs text-red">{validation.model}</p>}
           </div>
           <div>
             <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Condition</label>
@@ -146,6 +183,18 @@ export default function ConsignPage() {
         <div>
           <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Description & notable details</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Purchase year, hardware, any flaws..." className="w-full px-3 py-2.5 border border-beige text-sm outline-none focus:border-gold resize-none" />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Preferred branch for inspection <span className="text-red">*</span></label>
+          <select required value={preferredBranchId} onChange={(e) => { setPreferredBranchId(e.target.value); setTouched((current) => ({ ...current, branch: true })); }} className={`w-full px-3 py-2.5 border text-sm bg-white outline-none focus:border-gold ${validation.branch ? "border-red" : "border-beige"}`}>
+            <option value="">Select a branch…</option>
+            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.city ? ` · ${b.city}` : ""}</option>)}
+          </select>
+          {validation.branch && <p className="mt-1 text-xs text-red">{validation.branch}</p>}
+          <p className="text-[11px] text-grayx mt-1.5">
+            Your item will be authenticated at this branch — a specialist will confirm the appointment once your submission passes AI screening.
+          </p>
         </div>
 
         <div>
@@ -171,15 +220,16 @@ export default function ConsignPage() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Photos</label>
+          <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Photos <span className="text-red">*</span></label>
           <div className="flex flex-wrap gap-2 mb-2">
             {photoPreviews.map((src, i) => <img key={i} src={src} className="w-16 h-16 object-cover border border-beige" />)}
           </div>
-          <label className="flex flex-col items-center gap-1 text-xs text-grayx border border-dashed border-beige px-3 py-6 cursor-pointer hover:border-gold text-center">
-            <span>📎 Drag photos here or click to upload</span>
+          <label className={`flex flex-col items-center gap-1 text-xs text-grayx border border-dashed px-3 py-6 cursor-pointer hover:border-gold text-center ${validation.photos ? "border-red" : "border-beige"}`} onClick={() => setTouched((current) => ({ ...current, photos: true }))}>
+            <span>📎 Add at least one photo of the item</span>
             <span className="text-[10px]">Front, back, hardware, serial number · up to 8 images</span>
             <input type="file" accept="image/*" multiple onChange={handlePhotos} className="hidden" />
           </label>
+          {validation.photos && <p className="mt-1 text-xs text-red">{validation.photos}</p>}
         </div>
 
         <div>

@@ -41,9 +41,15 @@ export default function AdminConsignmentsPage() {
       .catch(() => setRows([]));
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (selected?.preferred_branch_id && !apptBranch) {
+      setApptBranch(selected.preferred_branch_id);
+    }
+  }, [selected, apptBranch]);
 
   const confidence = useMemo(() => {
     const v = selected?.confidence_score;
@@ -56,7 +62,7 @@ export default function AdminConsignmentsPage() {
     setApptError(null);
     try {
       const body: PhysicalAuthCreate = {
-        branch_id: apptBranch || null,
+        branch_id: apptBranch || selected.preferred_branch_id || null,
         appointment_at: new Date(apptAt).toISOString(),
         notes: apptNotes || null,
       };
@@ -141,7 +147,7 @@ export default function AdminConsignmentsPage() {
                 {rows.map((r) => (
                   <tr
                     key={r.id}
-                    onClick={() => { setSelected(r); setSalePrice(""); setPayout(""); setCommission("15"); }}
+                    onClick={() => { setSelected(r); setSalePrice(""); setPayout(""); setCommission("15"); setApptBranch(r.preferred_branch_id || ""); }}
                     className={`cursor-pointer border-b border-[#F0EDE6] ${selected?.id === r.id ? "bg-[#FBF6EC]" : "hover:bg-ivory"
                       }`}
                   >
@@ -272,16 +278,23 @@ export default function AdminConsignmentsPage() {
                   <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">
                     Branch
                   </label>
-                  <select
-                    value={apptBranch}
-                    onChange={(e) => setApptBranch(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none focus:border-gold"
-                  >
-                    <option value="">Select a branch…</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
+                  {selected.preferred_branch_name ? (
+                    <div className="w-full px-3 py-2.5 border border-gold bg-[#FBF7EF] text-sm">
+                      {selected.preferred_branch_name}
+                      <span className="ml-2 text-[11px] text-grayx">(chosen by customer)</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={apptBranch}
+                      onChange={(e) => setApptBranch(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none focus:border-gold"
+                    >
+                      <option value="">Select a branch…</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
                   {branches.length === 0 && (
                     <p className="text-[11.5px] text-red mt-1">
                       No branches available — create one in Admin → Branches.
@@ -370,7 +383,7 @@ export default function AdminConsignmentsPage() {
                 />
               </div>
               {error && <p className="text-[12px] text-red">{error}</p>}
-              {!apptBranch && branches.length > 0 && (
+              {!apptBranch && !selected.preferred_branch_id && branches.length > 0 && (
                 <p className="text-[11.5px] text-[#D98E7A]">
                   ⚠ No branch selected for the appointment — this item will be
                   recorded as approved but NOT listed in the shop. Pick a branch
