@@ -38,9 +38,39 @@ export default function ConsignStatusPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    authedFetch(`/consignments/${id}`)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Unable to load this consignment"));
+    let active = true;
+    let requestInFlight = false;
+    let poll: number | undefined;
+
+    async function load() {
+      if (!active || requestInFlight) return;
+      requestInFlight = true;
+      try {
+        const next = await authedFetch(`/consignments/${id}`);
+        if (!active) return;
+        setData(next);
+        setError("");
+        if (next.ai_assessment || next.status === "approved" || next.status === "rejected") {
+          if (poll !== undefined) window.clearInterval(poll);
+        }
+      } catch (e) {
+        if (active) {
+          setError(e instanceof Error ? e.message : "Unable to load this consignment");
+        }
+      } finally {
+        requestInFlight = false;
+      }
+    }
+
+    void load();
+    poll = window.setInterval(() => {
+      void load();
+    }, 3000);
+
+    return () => {
+      active = false;
+      window.clearInterval(poll);
+    };
   }, [id]);
 
   if (!data && !error) {
@@ -128,16 +158,29 @@ export default function ConsignStatusPage() {
         </div>
       </div>
 
+
       <div className="bg-charcoal text-white p-7 mb-7">
         <div className="text-xs text-gold font-semibold tracking-wide mb-1">✦ AI preliminary screening</div>
-        <div className="font-serif text-[22px] mb-1">Awaiting screening</div>
-        <div className="h-2 bg-[#333] rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-gold rounded-full" style={{ width: "0%" }} />
-        </div>
-        <p className="text-[13px] text-[#C9C5BC] leading-relaxed">
-          Our AI is reviewing the photos against known authentic pieces. A specialist confirms in person before listing.
-          Check back shortly.
-        </p>
+        {data.ai_assessment?.confidence_score != null ? (
+          <>
+            <div className="font-serif text-[22px] mb-1">{Math.round(data.ai_assessment.confidence_score)}% confidence</div>
+            <div className="h-2 bg-[#333] rounded-full overflow-hidden mb-2">
+              <div className="h-full bg-gold rounded-full" style={{ width: `${Math.round(data.ai_assessment.confidence_score)}%` }} />
+            </div>
+            <p className="text-[13px] text-[#C9C5BC] leading-relaxed">{data.ai_assessment.explanation}</p>
+          </>
+        ) : (
+          <>
+            <div className="font-serif text-[22px] mb-1">
+              {data.ai_assessment ? "Flagged for manual review" : "Awaiting screening"}
+            </div>
+            <p className="text-[13px] text-[#C9C5BC] leading-relaxed">
+              {data.ai_assessment
+                ? "Our AI couldn't complete an automatic assessment — a specialist will review this in person."
+                : "Our AI is reviewing the photos against known authentic pieces. Check back shortly."}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="border border-beige bg-white">

@@ -6,6 +6,7 @@ class ConsignmentDocumentIn(BaseModel):
     file_url: str
 
 class ConsignmentCreate(BaseModel):
+    acquisition_intent: str = "consignment"  # "shop_buy" | "consignment"
     category_id: Optional[str] = None
     brand_id: Optional[str] = None
     model: Optional[str] = None
@@ -19,8 +20,16 @@ class ConsignmentDocumentOut(BaseModel):
     document_type: str
     file_url: str
 
+class AIAssessmentOut(BaseModel):
+    confidence_score: Optional[float] = None
+    supporting_indicators: List[str] = []
+    suspicious_indicators: List[str] = []
+    explanation: Optional[str] = None
+    created_at: Optional[str] = None
+
 class ConsignmentOut(BaseModel):
     id: str
+    acquisition_intent: str = "consignment"
     category_id: Optional[str] = None
     category_name: str = ""
     brand_id: Optional[str] = None
@@ -32,6 +41,7 @@ class ConsignmentOut(BaseModel):
     status: str
     submitted_at: str
     documents: List[ConsignmentDocumentOut] = []
+    ai_assessment: Optional[AIAssessmentOut] = None  
 
 class ConsignmentListResponse(BaseModel):
     consignments: List[ConsignmentOut]
@@ -48,5 +58,6 @@ class StaffConsignmentOut(BaseModel):
     customer_name: str | None = None
     title: str | None = None
     confidence_score: float | None = None
+    supporting_indicators: List[str] = []
     suspicious_indicators: List[str] = []
     explanation: str | None = None

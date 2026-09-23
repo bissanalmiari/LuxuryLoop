@@ -25,6 +25,7 @@ export default function ConsignPage() {
   const [model, setModel] = useState("");
   const [condition, setCondition] = useState("Excellent");
   const [description, setDescription] = useState("");
+  const [intent, setIntent] = useState<"shop_buy" | "consignment">("consignment");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [doc, setDoc] = useState<File | null>(null);
@@ -80,6 +81,7 @@ export default function ConsignPage() {
       const result = await authedFetch("/consignments", {
         method: "POST",
         body: JSON.stringify({
+          acquisition_intent: intent,
           category_id: categoryId || null,
           brand_id: brandId || null,
           model,
@@ -144,6 +146,28 @@ export default function ConsignPage() {
         <div>
           <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">Description & notable details</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Purchase year, hardware, any flaws..." className="w-full px-3 py-2.5 border border-beige text-sm outline-none focus:border-gold resize-none" />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">How would you like to proceed?</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setIntent("consignment")}
+              className={`text-left px-4 py-3 border text-sm transition ${intent === "consignment" ? "border-gold bg-[#FBF7EF]" : "border-beige bg-white"}`}
+            >
+              <span className="block font-semibold mb-0.5">Consignment</span>
+              <span className="text-[11.5px] text-grayx leading-snug">List it in our shop for sale. It stays yours — you get paid (minus our commission) when it sells.</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIntent("shop_buy")}
+              className={`text-left px-4 py-3 border text-sm transition ${intent === "shop_buy" ? "border-gold bg-[#FBF7EF]" : "border-beige bg-white"}`}
+            >
+              <span className="block font-semibold mb-0.5">Sell to the shop</span>
+              <span className="text-[11.5px] text-grayx leading-snug">Sell it to us outright. Get your payout right away, no waiting for a buyer.</span>
+            </button>
+          </div>
         </div>
 
         <div>

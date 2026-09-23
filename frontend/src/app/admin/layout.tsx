@@ -4,6 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  BarChart3,
+  Boxes,
+  GitBranch,
+  Tags,
+  Gem,
+  ClipboardList,
+  ShoppingBag,
+  Users,
+  LogOut,
+} from "lucide-react";
 
 function initialsOf(name: string) {
   return name
@@ -32,21 +43,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdmin = role === "admin";
 
   // Build NAV here, inside the component, so it can react to role.
-  const NAV: { group: string; items: { label: string; icon: string; href: string | null }[] }[] = [
+  const NAV: { group: string; items: { label: string; icon: typeof BarChart3; href: string | null }[] }[] = [
     {
       group: "OVERVIEW",
-      items: [{ label: "Dashboard", icon: "📊", href: "/admin" }],
+      items: [{ label: "Dashboard", icon: BarChart3, href: "/admin" }],
     },
     {
       group: "CATALOG",
       items: [
-        { label: "Products", icon: "📦", href: "/admin/products" },
-        { label: "Inventory", icon: "🔄", href: "/admin/inventory" },
+          { label: "Products", icon: Boxes, href: "/admin/products" },
+          { label: "Inventory", icon: GitBranch, href: "/admin/inventory" },
         ...(isAdmin
           ? [
-              { label: "Branches", icon: "🏬", href: "/admin/branches" },
-              { label: "Categories", icon: "🏷️", href: "/admin/categories" },
-              { label: "Brands", icon: "💠", href: "/admin/brands" },
+            { label: "Branches", icon: GitBranch, href: "/admin/branches" },
+            { label: "Categories", icon: Tags, href: "/admin/categories" },
+            { label: "Brands", icon: Gem, href: "/admin/brands" },
             ]
           : []),
       ],
@@ -54,9 +65,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       group: "OPERATIONS",
       items: [
-        { label: "Consignments", icon: "📋", href: "/admin/consignments" },
-        { label: "Orders", icon: "🛍", href: "/admin/orders" },
-        { label: "Customers", icon: "👥", href: null },
+        { label: "Consignments", icon: ClipboardList, href: "/admin/consignments" },
+        { label: "Orders", icon: ShoppingBag, href: "/admin/orders" },
+        { label: "Customers", icon: Users, href: null },
       ],
     },
   ];
@@ -95,7 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         active ? "bg-[rgba(198,161,91,0.15)] text-gold" : "hover:text-white"
                       }`}
                     >
-                      <span className="text-[17px]">{item.icon}</span> {item.label}
+                      <item.icon size={17} strokeWidth={1.8} /> {item.label}
                     </Link>
                   );
                 }
@@ -105,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     title="Coming soon"
                     className={`${linkBase} opacity-40 cursor-not-allowed`}
                   >
-                    <span className="text-[17px]">{item.icon}</span> {item.label}
+                    <item.icon size={17} strokeWidth={1.8} /> {item.label}
                   </span>
                 );
               })}
@@ -122,13 +133,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <button
             onClick={logout}
-            className="ml-auto text-[11.5px] text-[#8A867E] hover:text-gold"
+            className="ml-auto text-[#8A867E] hover:text-gold"
+            aria-label="Log out"
+            title="Log out"
           >
-            Log out
+            <LogOut size={16} strokeWidth={1.8} />
           </button>
         </div>
       </aside>
-      <main className="flex-1 px-10 py-8">{children}</main>
+      <main className="flex-1 min-w-0 px-10 py-8">{children}</main>
     </div>
   );
 }

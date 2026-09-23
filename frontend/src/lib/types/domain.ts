@@ -75,6 +75,7 @@ export interface StaffConsignment {
   id: string;
   request_id: string;
   status: string | null;
+  acquisition_intent?: string | null;
   notes: string | null;
   appointment_at: string | null;
   decided_at: string | null;
@@ -83,12 +84,16 @@ export interface StaffConsignment {
   customer_name: string | null;
   title: string | null;
   confidence_score?: number | null;
+  supporting_indicators?: string[] | null; 
   suspicious_indicators?: string[] | null;
   explanation?: string | null;
 }
 
 export interface PhysicalAuthDecision {
   result: "authenticated" | "rejected";
+  selling_price?: number | null;
+  payout_amount?: number | null;
+  commission_pct?: number | null;
   notes?: string | null;
   decided_at?: string | null;
 }

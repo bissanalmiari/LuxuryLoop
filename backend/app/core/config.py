@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     ai_assessment_provider: str = ""
     ai_assessment_api_key: str = ""
+    ai_assessment_base_url: str = "https://api.openai.com/v1/chat/completions"
+
+    resend_api_key: str = ""
+    email_from: str = "onboarding@resend.dev"   # free tier sender; swap to your own domain once verified
 
     @property
     def cors_origins_list(self) -> list[str]:
