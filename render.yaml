@@ -17,6 +17,8 @@ services:
         value: /api/v1
       - key: CORS_ORIGINS
         sync: false # set to your Vercel domain, e.g. https://luxuryloop.vercel.app
+      - key: SITE_URL
+        sync: false # set to the hosted frontend URL, e.g. https://luxuryloop.vercel.app
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY

@@ -1,9 +1,11 @@
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from app.core.config import settings
 from app.core.security import CurrentUser, get_current_user, get_staff_context
 from app.core.supabase_client import get_supabase_admin
-from app.schemas.order import CheckoutIn, CheckoutOut, OrderListResponse, OrderOut, PaymentConfirmIn
+from app.schemas.order import CheckoutCancelIn, CheckoutIn, CheckoutOut, OrderListResponse, OrderOut, PaymentConfirmIn
 from app.services import email_service, order_service, payment_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -40,8 +42,13 @@ async def checkout(payload: CheckoutIn, user: CurrentUser = Depends(get_current_
         pickup_branch_id=payload.pickup_branch_id,
     )
 
-    success_url = f"{settings.site_url}/orders?paid=1&checkout_session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{settings.site_url}/checkout"
+    requested_origin = payload.return_url.rstrip("/")
+    configured_origins = {origin.rstrip("/") for origin in settings.cors_origins_list}
+    return_url = requested_origin if requested_origin in configured_origins else settings.site_url.rstrip("/")
+    if not urlparse(return_url).netloc:
+        return_url = "http://localhost:3000"
+    success_url = f"{return_url}/orders?paid=1&checkout_session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{return_url}/checkout?cancelled=1&order_ids={','.join(order_ids)}"
     try:
         session_id, checkout_url = payment_service.create_checkout_session(
             total,
@@ -51,7 +58,11 @@ async def checkout(payload: CheckoutIn, user: CurrentUser = Depends(get_current_
             cancel_url=cancel_url,
         )
     except RuntimeError as error:
+        order_service.cancel_pending_orders(client, user.id, order_ids)
         raise HTTPException(status_code=503, detail=str(error))
+    except Exception as error:
+        order_service.cancel_pending_orders(client, user.id, order_ids)
+        raise HTTPException(status_code=502, detail=f"Stripe checkout could not be started: {error}")
     order_service.tag_payment_intent(client, order_ids, session_id)
 
     return CheckoutOut(
@@ -60,6 +71,16 @@ async def checkout(payload: CheckoutIn, user: CurrentUser = Depends(get_current_
         checkout_session_id=session_id,
         total_amount=total,
     )
+
+
+@router.post("/cancel-checkout", status_code=204)
+async def cancel_checkout(
+    payload: CheckoutCancelIn,
+    user: CurrentUser = Depends(get_current_user),
+):
+    if not payload.order_ids:
+        return
+    order_service.cancel_pending_orders(get_supabase_admin(), user.id, payload.order_ids)
 
 
 @router.post("/confirm-payment", response_model=CheckoutOut)

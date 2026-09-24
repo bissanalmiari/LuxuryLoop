@@ -40,6 +40,7 @@ class CheckoutIn(BaseModel):
     address: Optional[AddressIn] = None
     payment_method: str = "card"
     pickup_branch_id: Optional[str] = None
+    return_url: str = "http://localhost:3000"
 
 
 class CheckoutOut(BaseModel):
@@ -51,3 +52,7 @@ class CheckoutOut(BaseModel):
 
 class PaymentConfirmIn(BaseModel):
     checkout_session_id: str
+
+
+class CheckoutCancelIn(BaseModel):
+    order_ids: List[str]

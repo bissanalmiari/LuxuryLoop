@@ -50,6 +50,19 @@ function CheckoutForm({ items, subtotal }: { items: any[]; subtotal: number }) {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cancelled") !== "1") return;
+    const orderIds = (params.get("order_ids") || "").split(",").filter(Boolean);
+    if (!orderIds.length) return;
+    authedFetch("/orders/cancel-checkout", {
+      method: "POST",
+      body: JSON.stringify({ order_ids: orderIds }),
+    })
+      .then(() => setErrorMsg("Payment was cancelled. Your items are back in your cart."))
+      .catch(() => setErrorMsg("Payment was cancelled, but we could not restore your cart. Please refresh."));
+  }, []);
+
+  useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/branches`)
       .then((r) => r.json())
       .catch(() => [])
@@ -69,6 +82,7 @@ function CheckoutForm({ items, subtotal }: { items: any[]; subtotal: number }) {
     const payload: Record<string, unknown> = {
       fulfillment_type: fulfillment,
       payment_method: "card",
+      return_url: window.location.origin,
     };
     if (fulfillment === "pickup") {
       if (!pickupBranchId) {

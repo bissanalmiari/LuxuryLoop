@@ -174,6 +174,43 @@ def tag_payment_intent(client: Client, order_ids: List[str], payment_intent_id: 
     ).execute()
 
 
+def cancel_pending_orders(client: Client, customer_id: str, order_ids: List[str]) -> None:
+    """Return unpaid checkout items to the customer's cart and remove orders."""
+    orders = (
+        client.table("orders")
+        .select("id")
+        .eq("customer_id", customer_id)
+        .in_("id", order_ids)
+        .eq("status", "pending")
+        .execute()
+        .data
+        or []
+    )
+    valid_order_ids = [order["id"] for order in orders]
+    if not valid_order_ids:
+        return
+
+    items = (
+        client.table("order_items")
+        .select("item_id, items(status)")
+        .in_("order_id", valid_order_ids)
+        .execute()
+        .data
+        or []
+    )
+    for row in items:
+        item = row.get("items") or {}
+        if item.get("status") == "reserved":
+            client.table("items").update({"status": "available"}).eq("id", row["item_id"]).execute()
+        client.table("cart_items").upsert(
+            {"customer_id": customer_id, "item_id": row["item_id"]},
+            on_conflict="customer_id,item_id",
+            ignore_duplicates=True,
+        ).execute()
+
+    client.table("orders").delete().in_("id", valid_order_ids).execute()
+
+
 def mark_payments_succeeded(client: Client, payment_intent_id: str) -> List[str]:
     """Flip 'pending' payments for an intent to 'succeeded' and mark orders paid.
     Returns the order ids."""
