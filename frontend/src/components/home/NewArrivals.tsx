@@ -1,13 +1,36 @@
-import { ProductCard } from "@/components/ui/ProductCard";
+"use client";
 
-const items = [
-  { brand: "Chanel", title: "Classic Flap Bag", price: "$1,850", location: "Beirut", imageClass: "bg-charcoal" },
-  { brand: "Rolex", title: "Datejust 36 Two-Tone", price: "$8,400", location: "Jounieh", imageClass: "bg-gold" },
-  { brand: "Cartier", title: "Love Bracelet, 18k Gold", price: "$4,200", location: "Beirut", imageClass: "bg-taupe" },
-  { brand: "Christian Louboutin", title: "So Kate Pumps, 100mm", price: "$540", location: "Tripoli", imageClass: "bg-grayx" },
-];
+import { useEffect, useState } from "react";
+import { ProductCard } from "@/components/ui/ProductCard";
+import { Product, ProductListResponse } from "@/lib/types/domain";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const COUNT = 4;
 
 export function NewArrivals() {
+  const [items, setItems] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/products?status=available&page_size=${COUNT}`)
+      .then((r) => r.json())
+      .then((data: Partial<ProductListResponse>) => {
+        if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
+      })
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loading && items.length === 0) return null;
+
   return (
     <section className="py-14 max-w-[1240px] mx-auto px-8">
       <div className="flex items-end justify-between gap-6 mb-8">
@@ -18,9 +41,29 @@ export function NewArrivals() {
         <p className="text-[14.5px] text-grayx max-w-[380px]">Added to the collection this week.</p>
       </div>
       <div className="grid grid-cols-4 gap-7">
-        {items.map((item) => (
-          <ProductCard key={item.title} {...item} />
-        ))}
+        {loading
+          ? Array.from({ length: COUNT }).map((_, i) => (
+              <div key={i} className="card animate-pulse">
+                <div className="aspect-square bg-beige/40" />
+                <div className="p-[18px] space-y-3">
+                  <div className="h-3 w-2/5 bg-beige/50" />
+                  <div className="h-4 w-3/5 bg-beige/50" />
+                  <div className="h-5 w-1/3 bg-beige/50" />
+                  <div className="h-9 w-full bg-beige/40" />
+                </div>
+              </div>
+            ))
+          : items.map((p) => (
+              <ProductCard
+                key={p.id}
+                brand={p.brand_name}
+                title={p.title}
+                price={`$${p.selling_price.toLocaleString()}`}
+                location={`${p.branch_name}${p.branch_country ? `, ${p.branch_country}` : ""}`}
+                image={p.image_urls[0]}
+                href={`/product/${p.id}`}
+              />
+            ))}
       </div>
     </section>
   );

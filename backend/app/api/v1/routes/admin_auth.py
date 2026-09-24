@@ -50,7 +50,7 @@ async def update_role(
 
     # Update auth metadata
     try:
-        client.auth.admin.update_user(
+        client.auth.admin.update_user_by_id(
             user_id,
             {
                 "app_metadata": {"role": payload.role},
@@ -78,10 +78,24 @@ async def toggle_active(
 ):
     client = get_supabase_admin()
     try:
-        client.auth.admin.update_user(user_id, {"app_metadata": {"is_active": is_active}})
+        client.auth.admin.update_user_by_id(user_id, {"app_metadata": {"is_active": is_active}})
     except Exception:
         pass
 
     client.table("users").update({"is_active": is_active}).eq("id", user_id).execute()
     resp = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).single().execute()
     return AdminUserResponse(**(resp.data or {}))
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: str, _admin: CurrentUser = Depends(require_admin)):
+    client = get_supabase_admin()
+    profile = client.table("users").select("role").eq("id", user_id).maybe_single().execute().data
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    if profile.get("role") != "customer":
+        raise HTTPException(status_code=400, detail="Only customer accounts can be deleted here")
+    try:
+        client.auth.admin.delete_user(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

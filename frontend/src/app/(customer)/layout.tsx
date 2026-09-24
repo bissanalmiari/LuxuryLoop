@@ -5,7 +5,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   return (
     <>
       <Navbar />
-      <main>{children}</main>
+      <main className="min-h-[60vh]">{children}</main>
       <Footer />
     </>
   );
