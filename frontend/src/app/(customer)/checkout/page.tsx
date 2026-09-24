@@ -50,19 +50,6 @@ function CheckoutForm({ items, subtotal }: { items: any[]; subtotal: number }) {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("cancelled") !== "1") return;
-    const orderIds = (params.get("order_ids") || "").split(",").filter(Boolean);
-    if (!orderIds.length) return;
-    authedFetch("/orders/cancel-checkout", {
-      method: "POST",
-      body: JSON.stringify({ order_ids: orderIds }),
-    })
-      .then(() => setErrorMsg("Payment was cancelled. Your items are back in your cart."))
-      .catch(() => setErrorMsg("Payment was cancelled, but we could not restore your cart. Please refresh."));
-  }, []);
-
-  useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/branches`)
       .then((r) => r.json())
       .catch(() => [])
@@ -271,14 +258,31 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<{ items: any[]; subtotal: number }>({ items: [], subtotal: 0 });
   const [loadingCart, setLoadingCart] = useState(true);
   const [cartError, setCartError] = useState<string | null>(null);
+  const [cancelNotice, setCancelNotice] = useState("");
 
-  const loadCart = useCallback(() => {
+  const loadCart = useCallback(async () => {
     setLoadingCart(true);
     setCartError(null);
-    authedFetch("/cart")
-      .then((d) => setCart({ items: d.items || [], subtotal: d.subtotal || 0 }))
-      .catch((e) => setCartError(e instanceof Error ? e.message : "Unable to load your cart"))
-      .finally(() => setLoadingCart(false));
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("cancelled") === "1") {
+        const orderIds = (params.get("order_ids") || "").split(",").filter(Boolean);
+        if (orderIds.length) {
+          await authedFetch("/orders/cancel-checkout", {
+            method: "POST",
+            body: JSON.stringify({ order_ids: orderIds }),
+          });
+          setCancelNotice("Payment cancelled. Your items are back in your cart.");
+        }
+        window.history.replaceState({}, "", "/checkout");
+      }
+      const data = await authedFetch("/cart");
+      setCart({ items: data.items || [], subtotal: data.subtotal || 0 });
+    } catch (e) {
+      setCartError(e instanceof Error ? e.message : "Unable to load your cart");
+    } finally {
+      setLoadingCart(false);
+    }
   }, []);
 
   useEffect(() => { loadCart(); }, [loadCart]);
@@ -297,6 +301,7 @@ export default function CheckoutPage() {
 
       <h1 className="font-serif text-3xl font-medium mb-1">Checkout</h1>
       <p className="text-sm text-grayx mb-8">Almost there — confirm where you&apos;ll receive your order and pay securely.</p>
+      {cancelNotice && <p className="mb-6 border border-gold bg-ivory/60 px-4 py-3 text-sm text-charcoal">{cancelNotice}</p>}
 
       {loadingCart ? (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 items-start">

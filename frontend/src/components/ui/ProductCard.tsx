@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MapPin, Heart, ShoppingBag } from "lucide-react";
+import { Check, MapPin, Heart, ShoppingBag } from "lucide-react";
 import { authedFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +28,20 @@ export function ProductCard({ brand, title, price, location, href, image, imageC
       .then((d) => {
         if (active && Array.isArray(d?.favorites)) {
           setSaved(d.favorites.some((f: { item_id: string }) => f.item_id === itemId));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [itemId]);
+
+  useEffect(() => {
+    let active = true;
+    authedFetch("/cart")
+      .then((d) => {
+        if (active && Array.isArray(d?.items)) {
+          setAdded(d.items.some((item: { item_id: string }) => item.item_id === itemId));
         }
       })
       .catch(() => {});
@@ -72,7 +86,6 @@ async function addToCart(e: React.MouseEvent) {
     try {
       await authedFetch("/cart", { method: "POST", body: JSON.stringify({ item_id: itemId }) });
       setAdded(true);
-      setTimeout(() => setAdded(false), 1500);
     } catch {
       /* keep current state */
     } finally {
@@ -107,7 +120,7 @@ async function addToCart(e: React.MouseEvent) {
           }`}
           disabled={adding}
         >
-          <ShoppingBag size={15} />
+          {added ? <Check size={16} strokeWidth={2.4} /> : <ShoppingBag size={15} />}
         </button>
       </Link>
       <div className="p-[18px]">
