@@ -46,7 +46,7 @@ export default function FavoritesPage() {
         </div>
       ) : items.length === 0 ? (
         <div style={{ border: "1px solid #E5E0D8", background: "#fff", padding: 48, textAlign: "center" }}>
-          <p style={{ color: "#77736E", marginBottom: 12 }}>You haven't saved any pieces yet.</p>
+          <p style={{ color: "#77736E", marginBottom: 12 }}>You haven&apos;t saved any pieces yet.</p>
           <Link href="/shop" style={{ color: "#C6A15B", fontWeight: 600 }}>Browse the shop</Link>
         </div>
       ) : (

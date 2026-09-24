@@ -349,7 +349,7 @@ useEffect(() => {
                     className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none focus:border-gold"
                   />
                   <p className="text-[11px] text-grayx mt-1">
-                    Customer chose "Sell to the shop" — they'll be emailed to come collect this amount.
+                    Customer chose &quot;Sell to the shop&quot; — they&apos;ll be emailed to come collect this amount.
                   </p>
                 </div>
               ) : (
@@ -366,7 +366,7 @@ useEffect(() => {
                     className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none focus:border-gold"
                   />
                   <p className="text-[11px] text-grayx mt-1">
-                    Customer chose "Consignment" — they keep the sale price minus this commission.
+                    Customer chose &quot;Consignment&quot; — they keep the sale price minus this commission.
                   </p>
                 </div>
               )}
