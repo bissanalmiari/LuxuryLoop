@@ -186,21 +186,27 @@ def _safe_promote_approved_consignment(
         logging.getLogger("luxuryloop.consignment").exception("promote failed for request %s", request_id)
 
 
-def list_staff_queue(client):
+def list_staff_queue(client, status: str | None = None):
     """
     Rooted on authentication_requests (not physical_authentications) so an
     item shows up the moment it's submitted + AI-screened — not only after
     staff has scheduled an appointment. ai_assessments and
     physical_authentications are both fetched separately per request,
     since a request may have neither, one, or both.
+
+    Defaults to every request status (including approved/rejected) so a
+    decided item stays visible in the queue; pass `status` to filter down
+    to a single one.
     """
-    requests = (
+    query = (
         client.table("authentication_requests")
         .select("id, status, acquisition_intent, preferred_branch_id, model, description, customer_id, submitted_at, customer:users!authentication_requests_customer_id_fkey(full_name)")
-        .in_("status", ["submitted", "under_review", "pending_physical_authentication"])
-        .order("submitted_at", desc=True)
-        .execute()
     )
+    if status:
+        query = query.eq("status", status)
+    else:
+        query = query.in_("status", ["submitted", "under_review", "pending_physical_authentication", "approved", "rejected"])
+    requests = query.order("submitted_at", desc=True).execute()
 
     preferred_branch_names = {}
     preferred_branch_ids = {req["preferred_branch_id"] for req in (requests.data or []) if req.get("preferred_branch_id")}

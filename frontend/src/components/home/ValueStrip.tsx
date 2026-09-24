@@ -10,11 +10,11 @@ const items = [
 export function ValueStrip() {
   return (
     <div className="border-b border-beige bg-white">
-      <div className="max-w-[1240px] mx-auto grid grid-cols-4">
+      <div className="max-w-[1240px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {items.map(({ icon: Icon, title, sub }, i) => (
           <div
             key={title}
-            className={`flex items-center gap-3.5 py-6 px-8 ${i > 0 ? "border-l border-beige" : ""}`}
+            className={`flex items-center gap-3.5 py-5 md:py-6 px-8 ${i > 0 ? "lg:border-l border-beige" : ""}`}
           >
             <Icon size={24} className="text-gold shrink-0" />
             <div>

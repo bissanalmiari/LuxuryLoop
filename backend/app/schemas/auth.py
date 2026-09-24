@@ -37,3 +37,8 @@ class AdminUserResponse(BaseModel):
     full_name: Optional[str] = None
     role: str = "customer"
     is_active: bool = True
+
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None

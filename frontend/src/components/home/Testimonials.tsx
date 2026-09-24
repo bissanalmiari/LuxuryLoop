@@ -28,7 +28,7 @@ export function Testimonials() {
           <h2 className="font-serif text-[32px] font-medium">Loved by our customers</h2>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-7">
         {testimonials.map((t) => (
           <div key={t.name} className="bg-white border border-beige p-7">
             <div className="text-gold mb-3.5 tracking-[2px]">★★★★★</div>

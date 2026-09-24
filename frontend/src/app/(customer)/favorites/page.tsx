@@ -22,7 +22,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1240, margin: "0 auto", padding: "56px 32px" }}>
+    <div style={{ maxWidth: 1240, margin: "0 auto" }} className="px-5 py-14 md:px-8 md:py-[56px]">
       <p style={{ color: "#C6A15B", fontSize: 13, fontWeight: 600, letterSpacing: "0.14em", marginBottom: 14 }}>
         WISHLIST
       </p>
@@ -31,7 +31,7 @@ export default function FavoritesPage() {
       </h1>
 
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-7">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="animate-pulse" style={{ border: "1px solid #E5E0D8", background: "#fff" }}>
               <div style={{ aspectRatio: "1 / 1", background: "#F1EEE7" }} />
@@ -50,7 +50,7 @@ export default function FavoritesPage() {
           <Link href="/shop" style={{ color: "#C6A15B", fontWeight: 600 }}>Browse the shop</Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-7">
           {items.map((f) => (
             <div key={f.id} style={{ border: "1px solid #E5E0D8", background: "#fff" }}>
               <div style={{ position: "relative" }}>

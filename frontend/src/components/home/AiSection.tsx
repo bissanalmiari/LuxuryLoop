@@ -16,7 +16,7 @@ const cards = [
 export function AiSection() {
   return (
     <section className="bg-charcoal text-white py-[70px]">
-      <div className="max-w-[1240px] mx-auto px-8 grid grid-cols-2 gap-10 items-center">
+      <div className="max-w-[1240px] mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         <div>
           <p className="text-gold text-[13px] font-semibold tracking-[.14em] mb-3.5">Powered by AI</p>
           <h2 className="font-serif text-[32px] font-medium mb-4">Confidence in every purchase</h2>

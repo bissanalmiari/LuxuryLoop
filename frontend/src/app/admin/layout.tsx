@@ -13,8 +13,11 @@ import {
   ClipboardList,
   ShoppingBag,
   Users,
+  Mail,
   LogOut,
   Home,
+  Menu,
+  X,
 } from "lucide-react";
 
 function initialsOf(name: string) {
@@ -31,12 +34,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     createClient()
       .auth.getUser()
       .then(({ data }) => setUser(data?.user ?? null));
   }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   const userMeta = user?.user_metadata ?? {};
   const fullName = userMeta.full_name?.trim() || user?.email?.split("@")[0] || "Admin";
@@ -70,6 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { label: "Orders", icon: ShoppingBag, href: "/admin/orders" },
         { label: "Sales", icon: ShoppingBag, href: "/admin/sales" },
         { label: "Customers", icon: Users, href: "/admin/customers" },
+        { label: "Contact inbox", icon: Mail, href: "/admin/contact" },
       ],
     },
   ];
@@ -85,7 +94,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-ivory text-charcoal">
-      <aside className="w-[236px] bg-charcoal text-[#C9C5BC] flex-col shrink-0 flex">
+      <button
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-label="Toggle menu"
+        className="lg:hidden fixed top-5 right-5 z-[60] bg-charcoal text-white p-2.5 rounded-[3px] shadow"
+      >
+        {menuOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      <aside
+        className={`${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        } fixed inset-y-0 left-0 z-50 w-[250px] transition-transform duration-200 lg:static lg:translate-x-0 lg:w-[236px] bg-charcoal text-[#C9C5BC] flex-col shrink-0 flex`}
+      >
         <div className="px-6 pt-[26px] pb-6 border-b border-[#333]">
           <Link href="/" className="font-serif text-[26px] text-white">
             Luxury<span className="text-gold italic">Loop</span>
@@ -151,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-10 py-8">{children}</main>
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-6 lg:py-8 pt-16 lg:pt-8">{children}</main>
     </div>
   );
 }

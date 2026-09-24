@@ -21,7 +21,7 @@ export function Branches() {
   if (branches.length === 0) return null;
 
   return (
-    <section className="py-14 max-w-[1240px] mx-auto px-8" id="about">
+    <section className="py-14 max-w-[1240px] mx-auto px-8 scroll-mt-20" id="branches">
       <div className="flex items-end justify-between gap-6 mb-8">
         <div>
           <p className="text-gold text-[13px] font-semibold tracking-[.14em] mb-3.5">Visit Us</p>
@@ -29,7 +29,7 @@ export function Branches() {
         </div>
         <p className="text-[14.5px] text-grayx max-w-[380px]">Three locations across Lebanon, one collection.</p>
       </div>
-      <div className="grid grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7">
         {branches.map((b) => (
           <Link key={b.id} href={`/shop?branch_id=${b.id}`} className="card overflow-hidden">
             <div className="relative h-[140px] bg-[#F1EEE7] flex items-center justify-center overflow-hidden">

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { Trash2 } from "lucide-react";
 
 interface CartItem { id: string; item_id: string; title: string; brand_name: string; branch_name: string; branch_country: string; selling_price: number; image_url: string | null; status: string; }
 
@@ -73,7 +74,14 @@ export default function CartPage() {
                   {it.status !== "available" && <p className="text-xs text-red mt-1">No longer available — please remove</p>}
                 </div>
                 <p className="font-serif">${it.selling_price.toLocaleString()}</p>
-                <button onClick={() => remove(it.id)} className="text-grayx hover:text-red text-sm ml-2">🗑</button>
+                <button
+                  type="button"
+                  onClick={() => remove(it.id)}
+                  aria-label="Remove from cart"
+                  className="text-grayx hover:text-red transition-colors shrink-0"
+                >
+                  <Trash2 size={17} strokeWidth={1.8} />
+                </button>
               </div>
             ))}
           </div>

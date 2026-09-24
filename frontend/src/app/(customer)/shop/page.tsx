@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Check, Heart, ShoppingBag } from "lucide-react";
 import { Product, ProductListResponse, Branch, Category, Brand } from "@/lib/types/domain";
 import { authedFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +26,7 @@ export default function ShopPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [search, setSearch] = useState("");
+  const [addedIds, setAddedIds] = useState<string[]>([]);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -126,9 +127,25 @@ export default function ShopPage() {
     }
   }
 
+async function addToCart(p: Product) {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      router.push(`/login?next=/shop`);
+      return;
+    }
+    try {
+      await authedFetch("/cart", { method: "POST", body: JSON.stringify({ item_id: p.id }) });
+      setAddedIds((ids) => [...ids, p.id]);
+      setTimeout(() => setAddedIds((ids) => ids.filter((id) => id !== p.id)), 1600);
+    } catch {
+      alert("Could not add to cart. Please try again.");
+    }
+  }
+
   return (
-    <div style={{ maxWidth: 1240, margin: "0 auto", padding: "56px 32px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+    <div style={{ maxWidth: 1240, margin: "0 auto" }} className="shop-page px-5 py-14 md:px-8 md:py-[56px]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4" style={{ marginBottom: 32 }}>
         <div>
           <p style={{ color: "#C6A15B", fontSize: 13, fontWeight: 600, letterSpacing: "0.14em", marginBottom: 14 }}>
             FULL COLLECTION
@@ -140,7 +157,7 @@ export default function ShopPage() {
         <p style={{ color: "#77736E", fontSize: 14.5 }}>{total} authenticated pieces across 3 branches.</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 36 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8 lg:gap-9">
         {/* Sidebar */}
         <aside>
           <div style={{ marginBottom: 28 }}>
@@ -214,7 +231,7 @@ export default function ShopPage() {
 
         {/* Product grid */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3" style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 13, color: "#77736E" }}>
               {loading ? "Loading..." : `Showing ${Math.min((page - 1) * PAGE_SIZE + 1, total)}–${Math.min(page * PAGE_SIZE, total)} of ${total} results`}
             </p>
@@ -224,7 +241,7 @@ export default function ShopPage() {
           </div>
 
           {loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-7">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ background: "#fff", border: "1px solid #E5E0D8" }} className="animate-pulse">
                   <div style={{ aspectRatio: "1 / 1", background: "#E5E0D8" }} />
@@ -240,7 +257,7 @@ export default function ShopPage() {
           ) : products.length === 0 ? (
             <p style={{ color: "#77736E", fontSize: 14, padding: "40px 0" }}>No items match your filters.</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-7">
               {products.map((p) => (
                 <div key={p.id} style={{ background: "#fff", border: "1px solid #E5E0D8" }}>
                   <Link href={`/product/${p.id}`} style={{ display: "block", position: "relative" }}>
@@ -282,21 +299,49 @@ export default function ShopPage() {
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: 14,
-                        color: favoriteIds.includes(p.id) ? "#B54444" : "#1C1C1C",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Heart size={16} fill={favoriteIds.includes(p.id) ? "currentColor" : "none"} />
-                    </button>
-                  </Link>
+color: favoriteIds.includes(p.id) ? "#B54444" : "#1C1C1C",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Heart size={16} fill={favoriteIds.includes(p.id) ? "currentColor" : "none"} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={addedIds.includes(p.id) ? "Added to cart" : "Add to cart"}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          addToCart(p);
+                        }}
+                        style={{
+                          position: "absolute",
+                          bottom: 12,
+                          right: 12,
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: "none",
+                          background: addedIds.includes(p.id) ? "#1C1C1C" : "rgba(28,28,28,0.9)",
+                          color: addedIds.includes(p.id) ? "#C6A15B" : "#F8F6F1",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          cursor: "pointer",
+                          transition: "background 0.2s, color 0.2s",
+                        }}
+                      >
+                        {addedIds.includes(p.id) ? <Check size={16} /> : <ShoppingBag size={16} />}
+                      </button>
+                    </Link>
                   <div style={{ padding: 18 }}>
                     <p style={{ fontSize: 12.5, color: "#77736E", margin: "0 0 4px" }}>{p.brand_name}</p>
                     <p style={{ fontWeight: 600, fontSize: 15, margin: "0 0 8px" }}>{p.title}</p>
                     <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, margin: "0 0 14px" }}>
                       ${p.selling_price.toLocaleString()}
                     </p>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12.5, color: "#77736E" }}>📍 {p.branch_name}{p.branch_country ? `, ${p.branch_country}` : ""}</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 12.5, color: "#77736E", minWidth: 0 }}>📍 {p.branch_name}{p.branch_country ? `, ${p.branch_country}` : ""}</span>
                       <Link
                         href={`/product/${p.id}`}
                         style={{

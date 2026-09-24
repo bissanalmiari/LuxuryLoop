@@ -25,7 +25,7 @@ export function HowItWorks() {
           Three simple steps, whether you&apos;re buying or selling.
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
         {steps.map((step, i) => (
           <div key={step.title} className="text-center px-4">
             <div className="w-11 h-11 rounded-full bg-charcoal text-gold font-serif text-lg flex items-center justify-center mx-auto mb-4.5">

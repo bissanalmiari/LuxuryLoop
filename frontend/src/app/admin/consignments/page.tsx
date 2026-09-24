@@ -3,11 +3,38 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { StaffConsignment, PhysicalAuthCreate, PhysicalAuthDecision, Branch } from "@/lib/types/domain";
-import { authedFetch, API_BASE } from "@/lib/api";
+import { StaffConsignment, PhysicalAuthCreate, PhysicalAuthDecision } from "@/lib/types/domain";
+import { authedFetch } from "@/lib/api";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "submitted", label: "Submitted" },
+  { value: "under_review", label: "Under review" },
+  { value: "pending_physical_authentication", label: "Pending physical" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const STATUS_TONE: Record<string, "gold" | "green" | "red" | "gray"> = {
+  submitted: "gray",
+  under_review: "gold",
+  pending_physical_authentication: "gold",
+  approved: "green",
+  rejected: "red",
+};
+
+function statusLabel(s: string | null | undefined) {
+  if (!s) return "Unknown";
+  return s.replace(/_/g, " ");
+}
+
+function isDecided(s: string | null | undefined) {
+  return s === "approved" || s === "rejected";
+}
 
 export default function AdminConsignmentsPage() {
   const [rows, setRows] = useState<StaffConsignment[]>([]);
+  const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<StaffConsignment | null>(null);
   const [notes, setNotes] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -17,19 +44,8 @@ export default function AdminConsignmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [apptAt, setApptAt] = useState("");
   const [apptNotes, setApptNotes] = useState("");
-  const [apptBranch, setApptBranch] = useState("");
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [apptError, setApptError] = useState<string | null>(null);
   const [busyAppt, setBusyAppt] = useState(false);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/branches`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setBranches(data.filter((b: Branch) => b.is_active));
-      })
-      .catch(() => setBranches([]));
-  }, []);
 
   const load = useCallback(() => {
     authedFetch("/staff/consignments")
@@ -41,15 +57,19 @@ export default function AdminConsignmentsPage() {
       .catch(() => setRows([]));
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (selected?.preferred_branch_id && !apptBranch) {
-      setApptBranch(selected.preferred_branch_id);
-    }
-  }, [selected, apptBranch]);
+  const filtered = useMemo(
+    () => (statusFilter ? rows.filter((r) => r.status === statusFilter) : rows),
+    [rows, statusFilter]
+  );
+
+  const pendingCount = useMemo(
+    () => rows.filter((r) => !isDecided(r.status)).length,
+    [rows]
+  );
 
   const confidence = useMemo(() => {
     const v = selected?.confidence_score;
@@ -62,7 +82,7 @@ useEffect(() => {
     setApptError(null);
     try {
       const body: PhysicalAuthCreate = {
-        branch_id: apptBranch || selected.preferred_branch_id || null,
+        branch_id: selected.preferred_branch_id ?? null,
         appointment_at: new Date(apptAt).toISOString(),
         notes: apptNotes || null,
       };
@@ -72,7 +92,6 @@ useEffect(() => {
       );
       setApptAt("");
       setApptNotes("");
-      setApptBranch("");
       await load();
     } catch (e) {
       setApptError(e instanceof Error ? e.message : "Schedule failed");
@@ -114,7 +133,7 @@ useEffect(() => {
 
   return (
     <main className="max-w-[1240px] mx-auto">
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
           <h1 className="font-serif text-[26px] font-medium mb-1">
             Consignment review
@@ -123,17 +142,31 @@ useEffect(() => {
             AI-assisted screening, staff makes the final call
           </p>
         </div>
-        <Badge tone="gold">{rows.length} pending</Badge>
+        <Badge tone={pendingCount > 0 ? "gold" : "gray"}>{pendingCount} pending</Badge>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <label className="text-[11px] font-semibold text-grayx uppercase tracking-wide">
+          Filter
+        </label>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-beige bg-white text-sm outline-none focus:border-gold"
+        >
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-start">
         <section className="bg-white border border-beige overflow-hidden">
           <div className="px-6 py-5 border-b border-beige flex items-center justify-between">
             <h2 className="text-base font-semibold">Review queue</h2>
-            <Badge tone="gold">{rows.length} pending</Badge>
+            <Badge tone="gold">{filtered.length} {filtered.length === 1 ? "item" : "items"}</Badge>
           </div>
           <div className="overflow-x-auto">
-          <div className="px-0 py-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-grayx uppercase tracking-wide border-b border-beige">
@@ -144,14 +177,14 @@ useEffect(() => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {filtered.map((r) => (
                   <tr
                     key={r.id}
-                    onClick={() => { setSelected(r); setSalePrice(""); setPayout(""); setCommission("15"); setApptBranch(r.preferred_branch_id || ""); }}
+                    onClick={() => { setSelected(r); setSalePrice(""); setPayout(""); setCommission("15"); }}
                     className={`cursor-pointer border-b border-[#F0EDE6] ${selected?.id === r.id ? "bg-[#FBF6EC]" : "hover:bg-ivory"
                       }`}
                   >
-                    <td className="py-4 px-6 pr-3 font-semibold">{r.title ?? "Untitled"}</td>
+                    <td className="py-4 px-6 pr-3 font-semibold min-w-[160px]">{r.title ?? "Untitled"}</td>
                     <td className="py-3 pr-3 text-grayx text-[13px]">{r.customer_name}</td>
                     <td className="py-3 pr-3">
                       {r.confidence_score != null && (
@@ -161,17 +194,18 @@ useEffect(() => {
                       )}
                     </td>
                     <td className="py-3 px-6 text-right">
-                      {r.status === "authenticated" ? (
-                        <Badge tone="green">Selected</Badge>
+                      {r.status === "approved" ? (
+                        <Badge tone="green">Approved</Badge>
+                      ) : r.status === "rejected" ? (
+                        <Badge tone="red">Rejected</Badge>
                       ) : (
-                        <span className="text-[12px] text-gold">Review →</span>
+                        <span className="text-[12px] text-gold whitespace-nowrap">Review →</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
           </div>
         </section>
 
@@ -182,14 +216,16 @@ useEffect(() => {
               <p className="font-serif text-[17px] font-medium leading-snug">
                 “{selected.title ?? "Untitled"}”
               </p>
-              <Badge tone="gold">{selected.status?.replace(/_/g, " ")}</Badge>
+              <Badge tone={STATUS_TONE[selected.status ?? ""] ?? "gray"}>{statusLabel(selected.status)}</Badge>
             </div>
             <div className="px-6 py-4 text-[13px] text-grayx">
               <p className="text-[12.5px] text-grayx mt-1">
                 {selected.customer_name} ·{" "}
-                {selected.branch_name
-                  ? `${selected.branch_name} branch`
-                  : "No branch assigned"}
+                {selected.preferred_branch_name
+                  ? `${selected.preferred_branch_name} branch`
+                  : selected.branch_name
+                    ? `${selected.branch_name} branch`
+                    : "No branch assigned"}
               </p>
               <p className="mt-2 inline-block text-[11px] font-semibold uppercase tracking-wide bg-ivory border border-beige text-grayx px-2.5 py-1">
                 {selected.acquisition_intent === "shop_buy"
@@ -218,7 +254,7 @@ useEffect(() => {
                 </>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <p className="text-[11.5px] font-semibold text-gold mb-1.5">
                     Supporting indicators
@@ -263,6 +299,23 @@ useEffect(() => {
                 Physical authentication appointment
               </p>
               <div className="space-y-3 px-0">
+                {selected.preferred_branch_name && (
+                  <div className="px-3 py-2.5 border border-gold bg-[#FBF7EF] text-sm">
+                    {selected.preferred_branch_name}
+                    <span className="ml-2 text-[11px] text-grayx">(chosen by customer)</span>
+                  </div>
+                )}
+                {isDecided(selected.status) ? (
+                  <div className="text-[13px] text-grayx space-y-1">
+                    <p>
+                      {selected.decided_at
+                        ? <>Decision recorded on {new Date(selected.decided_at).toLocaleString()}</>
+                        : "Decision recorded."}
+                    </p>
+                    {selected.notes && <p className="italic">{selected.notes}</p>}
+                  </div>
+                ) : (
+                  <>
                 <div>
                   <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">
                     Appointment time
@@ -278,28 +331,11 @@ useEffect(() => {
                   <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">
                     Branch
                   </label>
-                  {selected.preferred_branch_name ? (
-                    <div className="w-full px-3 py-2.5 border border-gold bg-[#FBF7EF] text-sm">
-                      {selected.preferred_branch_name}
-                      <span className="ml-2 text-[11px] text-grayx">(chosen by customer)</span>
-                    </div>
-                  ) : (
-                    <select
-                      value={apptBranch}
-                      onChange={(e) => setApptBranch(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none focus:border-gold"
-                    >
-                      <option value="">Select a branch…</option>
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))}
-                    </select>
-                  )}
-                  {branches.length === 0 && (
-                    <p className="text-[11.5px] text-red mt-1">
-                      No branches available — create one in Admin → Branches.
-                    </p>
-                  )}
+                  <div className="w-full px-3 py-2.5 border border-beige bg-[#FAF9F6] text-sm">
+                    {selected.preferred_branch_name
+                      ? `${selected.preferred_branch_name} (from customer&apos;s selection)`
+                      : "No preferred branch chosen — the branch used to list this item will be resolved at approval."}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">
@@ -309,7 +345,7 @@ useEffect(() => {
                     value={apptNotes}
                     onChange={(e) => setApptNotes(e.target.value)}
                     rows={2}
-                    placeholder="Coordinate branch, courier, inspection scope…"
+                    placeholder="Coordinate courier, inspection scope…"
                     className="w-full px-3 py-2.5 border border-beige bg-white text-sm outline-none resize-none focus:border-gold"
                   />
                 </div>
@@ -317,14 +353,17 @@ useEffect(() => {
                 <Button
                   className="w-full justify-center"
                   variant="outline"
-                  disabled={busyAppt || !apptAt || !apptBranch}
+                  disabled={busyAppt || !apptAt}
                   onClick={scheduleAppointment}
                 >
                   {busyAppt ? "Scheduling…" : "Schedule appointment"}
                 </Button>
+                  </>
+                )}
               </div>
             </div>
 
+              {!isDecided(selected.status) && (
             <div className="px-6 py-5 space-y-3">
               <div>
                 <label className="block text-[11px] font-semibold text-grayx uppercase mb-1">
@@ -383,16 +422,6 @@ useEffect(() => {
                 />
               </div>
               {error && <p className="text-[12px] text-red">{error}</p>}
-              {!apptBranch && !selected.preferred_branch_id && branches.length > 0 && (
-                <p className="text-[11.5px] text-[#D98E7A]">
-                  ⚠ No branch selected for the appointment — this item will be
-                  recorded as approved but NOT listed in the shop. Pick a branch
-                  in the appointment section above.
-                </p>
-              )}
-              {branches.length === 0 && (
-                <p className="text-[11.5px] text-red">⚠ No branches exist — approved items cannot be listed.</p>
-              )}
               <div className="flex gap-3">
                 <Button
                   className="flex-1 justify-center"
@@ -411,6 +440,7 @@ useEffect(() => {
                 </Button>
               </div>
             </div>
+              )}
           </section>
           </div>
         )}

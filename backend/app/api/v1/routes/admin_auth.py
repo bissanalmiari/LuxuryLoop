@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.security import require_admin, CurrentUser
 from app.core.supabase_client import get_supabase_admin
-from app.schemas.auth import AdminCreateUser, AdminRoleUpdate, AdminUserResponse
+from app.schemas.auth import AdminCreateUser, AdminRoleUpdate, AdminUserResponse, AdminUserUpdate
 
 router = APIRouter(prefix="/auth/admin", tags=["admin-auth"])
 
@@ -83,6 +83,38 @@ async def toggle_active(
         pass
 
     client.table("users").update({"is_active": is_active}).eq("id", user_id).execute()
+    resp = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).single().execute()
+    return AdminUserResponse(**(resp.data or {}))
+
+
+@router.patch("/users/{user_id}", response_model=AdminUserResponse)
+async def update_user(
+    user_id: str,
+    payload: AdminUserUpdate,
+    _admin: CurrentUser = Depends(require_admin),
+):
+    client = get_supabase_admin()
+    profile = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).maybe_single().execute().data
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    data = payload.model_dump(exclude_unset=True, exclude_none=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    # Sync auth metadata so the profile page and JWT metadata stay consistent.
+    try:
+        auth_update = {"user_metadata": dict(profile)}
+        auth_update["user_metadata"].update(data)
+        client.auth.admin.update_user_by_id(user_id, auth_update)
+    except Exception:
+        pass
+
+    try:
+        client.table("users").update(data).eq("id", user_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not update user: {e}")
+
     resp = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).single().execute()
     return AdminUserResponse(**(resp.data or {}))
 

@@ -1,15 +1,27 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { authedFetch } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 
 export default function OrderHistoryPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrderHistoryInner />
+    </Suspense>
+  );
+}
+
+function OrderHistoryInner() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const checkoutSessionId = searchParams.get("checkout_session_id");
+  const [justPaid, setJustPaid] = useState(false);
 
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
     authedFetch("/orders/me")
       .then((d) =>
         setOrders((d.orders || []).filter((o: any) => o.status === "paid" || o.status === "completed"))
@@ -18,10 +30,33 @@ export default function OrderHistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (checkoutSessionId) {
+      authedFetch("/orders/confirm-payment", {
+        method: "POST",
+        body: JSON.stringify({ checkout_session_id: checkoutSessionId }),
+      })
+        .catch(() => {})
+        .finally(() => {
+          setJustPaid(true);
+          loadOrders();
+        });
+      return;
+    }
+    setJustPaid(Boolean(window.location.search.includes("paid=1")));
+    loadOrders();
+  }, [checkoutSessionId, loadOrders]);
+
   return (
-    <div className="max-w-[1000px] mx-auto px-8 py-14">
+    <div className="max-w-[1000px] mx-auto px-5 py-14 md:px-8">
       <h1 className="font-serif text-3xl font-medium mb-1">My purchases</h1>
       <p className="text-sm text-grayx mb-8">Items you have paid for.</p>
+
+      {justPaid && (
+        <div className="border border-gold bg-ivory/60 p-4 mb-6 text-sm text-charcoal">
+          Payment confirmed — thank you! Your order is being prepared.
+        </div>
+      )}
 
       {loading && (
         <div className="border border-beige bg-white divide-y divide-beige">
@@ -67,7 +102,10 @@ export default function OrderHistoryPage() {
               <div>
                 <p className="text-sm font-medium">Order #{o.id.slice(0, 8)}</p>
                 <p className="text-xs text-grayx">
-                  {o.branch_name} · {new Date(o.created_at).toLocaleDateString()}
+                  {o.fulfillment_type === "pickup" && o.pickup_branch_name
+                    ? `Pickup at ${o.pickup_branch_name}`
+                    : o.branch_name}{" "}
+                  · {new Date(o.created_at).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex items-center gap-3">

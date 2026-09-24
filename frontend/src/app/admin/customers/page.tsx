@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Pencil } from "lucide-react";
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -16,6 +16,9 @@ export default function AdminCustomersPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: "", phone: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   function loadCustomers() {
     setLoading(true);
@@ -61,6 +64,34 @@ export default function AdminCustomersPage() {
       setError(e instanceof Error ? e.message : "Could not delete customer");
     } finally {
       setRemoving(null);
+    }
+  }
+
+  function openEdit(customer: any) {
+    setEditing(customer);
+    setEditForm({
+      full_name: customer.full_name || "",
+      phone: customer.phone || "",
+    });
+    setError("");
+  }
+
+  async function saveEdit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editing) return;
+    setSavingEdit(true);
+    setError("");
+    try {
+      await authedFetch(`/auth/admin/users/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ ...editForm, full_name: editForm.full_name || null, phone: editForm.phone || null }),
+      });
+      setEditing(null);
+      loadCustomers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update customer");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -129,6 +160,9 @@ export default function AdminCustomersPage() {
                 <span>{c.orders_count} orders</span>
                 <span>{c.consignments_count} consignments</span>
                 <span className="font-mono">${c.total_spent.toLocaleString()}</span>
+                <button type="button" onClick={(event) => { event.stopPropagation(); openEdit(c); }} className="text-grayx hover:text-charcoal" aria-label={`Edit ${c.full_name || c.email}`} title="Edit customer info">
+                  <Pencil size={15} />
+                </button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); deleteCustomer(c); }} disabled={removing === c.id} className="text-[#9A4A36] hover:text-[#6F2E22] disabled:opacity-50" aria-label={`Delete ${c.full_name || c.email}`} title="Delete customer">
                   <Trash2 size={16} />
                 </button>
@@ -171,6 +205,36 @@ export default function AdminCustomersPage() {
           </div>
         ))}
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" onClick={() => setEditing(null)}>
+          <form onSubmit={saveEdit} className="w-full max-w-md bg-white border border-beige p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-lg">Edit customer</h2>
+                <p className="text-xs text-grayx">{editing.email}</p>
+              </div>
+              <button type="button" onClick={() => setEditing(null)} aria-label="Close"><X size={18} /></button>
+            </div>
+            <div className="grid gap-4">
+              <div>
+                <label htmlFor="edit-full-name" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-grayx">Full name</label>
+                <input id="edit-full-name" type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full border border-beige px-3 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="edit-phone" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-grayx">Phone</label>
+                <input id="edit-phone" type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full border border-beige px-3 py-2.5 text-sm" />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => setEditing(null)} className="px-4 py-2.5 text-sm font-semibold text-grayx hover:text-charcoal">Cancel</button>
+              <button type="submit" disabled={savingEdit} className="bg-charcoal px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+                {savingEdit ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { Branch } from "@/lib/types/domain";
 
 function Step({ num, label, state }: { num: string; label: string; state: "done" | "active" | "todo" }) {
   const circle =
@@ -35,100 +36,227 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 const inputCls = "w-full px-3 py-2.5 border border-beige text-sm outline-none focus:border-gold bg-white";
-const inputErrCls = "border-[#B15C4A] focus:border-[#B15C4A]";
 const labelCls = "block text-[13px] font-semibold mb-1.5";
 
-function FieldError({ msg }: { msg: string }) {
-  if (!msg) return null;
-  return <p className="text-[#B15C4A] text-[11px] mt-1">{msg}</p>;
-}
-
-function formatCardNumber(v: string) {
-  return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 4);
-  if (d.length >= 3 && parseInt(d.slice(0, 2), 10) > 12) {
-    return `12/${d.slice(2)}`;
-  }
-  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
-}
-
-function luhnValid(num: string): boolean {
-  let sum = 0;
-  let dbl = false;
-  for (let i = num.length - 1; i >= 0; i--) {
-    let d = parseInt(num[i], 10);
-    if (dbl) {
-      d *= 2;
-      if (d > 9) d -= 9;
-    }
-    sum += d;
-    dbl = !dbl;
-  }
-  return sum % 10 === 0;
-}
-
-function isFutureExpiryMMYY(v: string): boolean {
-  const m = /^(\d{2})\/(\d{2})$/.exec(v);
-  if (!m) return false;
-  const mm = parseInt(m[1], 10);
-  const yy = 2000 + parseInt(m[2], 10);
-  if (mm < 1 || mm > 12) return false;
-  const endOfMonth = new Date(yy, mm, 0, 23, 59, 59);
-  return endOfMonth.getTime() >= Date.now();
-}
-
-export default function CheckoutPage() {
-  const router = useRouter();
-  const [cart, setCart] = useState<{ items: any[]; subtotal: number }>({ items: [], subtotal: 0 });
+function CheckoutForm({ items, subtotal }: { items: any[]; subtotal: number }) {
   const [fulfillment, setFulfillment] = useState("delivery");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [pickupBranchId, setPickupBranchId] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address1, setAddress1] = useState("");
   const [city, setCity] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvc, setCvc] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
-  const [loadingCart, setLoadingCart] = useState(true);
-  const [cartError, setCartError] = useState<string | null>(null);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const mark = useCallback((key: string) => {
-    setTouched((t) => ({ ...t, [key]: true }));
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/branches`)
+      .then((r) => r.json())
+      .catch(() => [])
+      .then(setBranches);
+    authedFetch("/auth/me")
+      .then((me) => {
+        setFullName(me.full_name || "");
+        setPhone(me.phone || "");
+      })
+      .catch(() => {});
   }, []);
 
-  const shippingErrors = {
-    fullName: !fullName.trim() ? "Full name is required" : "",
-    phone:
-      !phone.trim() || phone.replace(/\D/g, "").length < 8 ? "Enter a valid phone number" : "",
-    address1: fulfillment === "delivery" && !address1.trim() ? "Address is required" : "",
-    city: fulfillment === "delivery" && !city.trim() ? "City is required" : "",
-  };
+  async function placeOrder() {
+    setErrorMsg("");
+    if (subtotal <= 0) return;
 
-  const cardErrors = {
-    cardNumber: (() => {
-      const d = cardNumber.replace(/\D/g, "");
-      if (!cardNumber) return "Card number is required";
-      if (d.length < 12) return "Card number is incomplete";
-      return luhnValid(d) ? "" : "Invalid card number";
-    })(),
-    expiry: !expiry
-      ? "Expiry date is required"
-      : !/^\d{2}\/\d{2}$/.test(expiry)
-        ? "Use MM/YY"
-        : isFutureExpiryMMYY(expiry)
-          ? ""
-          : "Card has expired",
-    cvc: !cvc ? "CVC is required" : cvc.length < 3 ? "CVC must be 3–4 digits" : "",
-  };
+    const payload: Record<string, unknown> = {
+      fulfillment_type: fulfillment,
+      payment_method: "card",
+    };
+    if (fulfillment === "pickup") {
+      if (!pickupBranchId) {
+        setErrorMsg("Please choose the branch you'll pick up from.");
+        return;
+      }
+      payload.pickup_branch_id = pickupBranchId;
+    } else {
+      if (!fullName.trim() || !phone.trim() || !address1.trim() || !city.trim()) {
+        setErrorMsg("Please fill in your name, phone, delivery address and city.");
+        return;
+      }
+      payload.address = { full_name: fullName, phone, address_line1: address1, city };
+    }
 
-  const show = (key: string, msg: string) => (touched[key] && msg ? msg : "");
+    setPlacing(true);
+    try {
+      const checkout = await authedFetch("/orders/checkout", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      window.location.href = checkout.checkout_url;
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Checkout failed");
+    }
+    setPlacing(false);
+  }
 
-  const hasErrors = Object.values(shippingErrors).some(Boolean) || Object.values(cardErrors).some(Boolean);
+  const selectedBranch = branches.find((b) => b.id === pickupBranchId);
+  const count = items.filter((it: any) => it.status === "available").length;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 items-start">
+      <div className="space-y-6">
+        {errorMsg && <p className="text-[#B15C4A] text-xs">{errorMsg}</p>}
+        <Panel title="Pickup or delivery">
+          <div className="mb-4">
+            <label className={labelCls}>How do you want to receive your order?</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFulfillment("delivery")}
+                className={`border px-4 py-3.5 text-left text-sm transition-colors ${
+                  fulfillment === "delivery" ? "border-gold bg-ivory/60" : "border-beige bg-white hover:border-gold/50"
+                }`}
+              >
+                <span className="block font-semibold mb-0.5">Home delivery</span>
+                <span className="block text-xs text-grayx">Free shipping to your address</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFulfillment("pickup")}
+                className={`border px-4 py-3.5 text-left text-sm transition-colors ${
+                  fulfillment === "pickup" ? "border-gold bg-ivory/60" : "border-beige bg-white hover:border-gold/50"
+                }`}
+              >
+                <span className="block font-semibold mb-0.5">Pick up in branch</span>
+                <span className="block text-xs text-grayx">Collect at your preferred branch</span>
+              </button>
+            </div>
+          </div>
+
+          {fulfillment === "delivery" ? (
+            <>
+              <p className="text-xs text-grayx mb-3">
+                We&apos;ll deliver to the address below. You&apos;ll be asked for your name and phone at the door.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={labelCls}>Full name</label>
+                  <input
+                    className={inputCls}
+                    placeholder="Lea Haddad"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Phone</label>
+                  <input
+                    className={inputCls}
+                    placeholder="+961 71 234 567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className={labelCls}>Delivery address</label>
+                <input
+                  className={inputCls}
+                  placeholder="Rue Gouraud, Gemmayzeh"
+                  value={address1}
+                  onChange={(e) => setAddress1(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>City</label>
+                <input
+                  className={inputCls}
+                  placeholder="Beirut"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <p className="text-xs text-grayx mb-3">
+                Your order will be held at the branch you choose. Just bring your ID when you collect it.
+              </p>
+              <label className={labelCls}>Pickup branch</label>
+              <select
+                value={pickupBranchId}
+                onChange={(e) => setPickupBranchId(e.target.value)}
+                className={`${inputCls} cursor-pointer`}
+              >
+                <option value="">Choose a branch…</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}{b.city ? ` — ${b.city}` : ""}
+                  </option>
+                ))}
+              </select>
+              {selectedBranch && (
+                <p className="text-xs text-grayx mt-2">
+                  Pickup at <span className="font-medium text-charcoal">{selectedBranch.name}</span>
+                  {selectedBranch.address ? `, ${selectedBranch.address}` : ""}.
+                </p>
+              )}
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Payment">
+          <p className="text-xs text-grayx mb-3">
+            You&apos;ll be taken to Stripe&apos;s secure payment page to complete your order. We never see your card details.
+          </p>
+        </Panel>
+      </div>
+
+      <div className="border border-beige bg-white p-6 h-fit lg:sticky lg:top-24">
+        <h3 className="font-serif text-base font-medium mb-4">Order summary</h3>
+        <div className="space-y-3 mb-5 max-h-64 overflow-y-auto pr-1">
+          {items.map((it: any, idx: number) => (
+            <div key={it.id || idx} className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-ivory border border-beige shrink-0 overflow-hidden flex items-center justify-center">
+                {it.image_url ? (
+                  <img src={it.image_url} alt={it.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[9px] text-grayx">{it.brand_name?.charAt(0)}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium truncate">{it.title}</p>
+                <p className="text-[11px] text-grayx">${it.selling_price.toLocaleString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between text-sm mb-2.5">
+          <span>{count} {count === 1 ? "item" : "items"}</span>
+          <span>${subtotal.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm mb-2.5">
+          <span>Shipping</span>
+          <span>Free</span>
+        </div>
+        <div className="flex justify-between font-semibold border-t border-beige pt-3 mt-3 mb-5">
+          <span>Total</span>
+          <span>${subtotal.toLocaleString()}</span>
+        </div>
+        <Button onClick={placeOrder} disabled={placing || subtotal <= 0} className="w-full justify-center">
+          {placing ? "Processing payment…" : `Pay ${subtotal ? `$${subtotal.toLocaleString()}` : ""}`}
+        </Button>
+        <p className="text-[11px] text-grayx text-center mt-3">
+          <Lock size={11} className="inline mr-1 -mt-0.5" />
+          Secured by Stripe
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  const [cart, setCart] = useState<{ items: any[]; subtotal: number }>({ items: [], subtotal: 0 });
+  const [loadingCart, setLoadingCart] = useState(true);
+  const [cartError, setCartError] = useState<string | null>(null);
 
   const loadCart = useCallback(() => {
     setLoadingCart(true);
@@ -141,38 +269,9 @@ export default function CheckoutPage() {
 
   useEffect(() => { loadCart(); }, [loadCart]);
 
-  const count = cart.items.filter((it: any) => it.status === "available").length;
-
-  async function placeOrder() {
-    Object.keys({ ...shippingErrors, ...cardErrors }).forEach(mark);
-    if (hasErrors) {
-      setError("Please fix the highlighted fields.");
-      return;
-    }
-    setError(null);
-    setPlacing(true);
-    try {
-      await authedFetch("/orders/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          fulfillment_type: fulfillment,
-          address:
-            fulfillment === "delivery"
-              ? { full_name: fullName, phone, address_line1: address1, city }
-              : undefined,
-          payment_method: "card",
-        }),
-      });
-      router.push("/orders");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Checkout failed");
-    }
-    setPlacing(false);
-  }
-
   return (
-    <div className="max-w-[1000px] mx-auto px-8 py-14">
-      <div className="stepper flex items-center justify-center gap-6 mb-12">
+    <div className="max-w-[1000px] mx-auto px-5 py-14 md:px-8">
+      <div className="stepper flex items-center justify-center gap-6 mb-12 overflow-x-auto">
         <Link href="/cart" className="flex items-center gap-2">
           <Step num="1" label="Cart" state="done" />
         </Link>
@@ -182,164 +281,31 @@ export default function CheckoutPage() {
         <Step num="3" label="Confirmation" state="todo" />
       </div>
 
-      <div className="grid grid-cols-[1fr_340px] gap-10 items-start">
-        <div className="space-y-6">
-          <Panel title="Shipping details">
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className={labelCls}>Full name</label>
-                <input
-                  className={`${inputCls} ${show("fullName", shippingErrors.fullName) ? inputErrCls : ""}`}
-                  placeholder="Lea Haddad"
-                  value={fullName}
-                  onBlur={() => mark("fullName")}
-                  onChange={(e) => { setFullName(e.target.value); mark("fullName"); }}
-                />
-                <FieldError msg={show("fullName", shippingErrors.fullName)} />
-              </div>
-              <div>
-                <label className={labelCls}>Phone</label>
-                <input
-                  className={`${inputCls} ${show("phone", shippingErrors.phone) ? inputErrCls : ""}`}
-                  placeholder="+961 71 234 567"
-                  value={phone}
-                  onBlur={() => mark("phone")}
-                  onChange={(e) => { setPhone(e.target.value); mark("phone"); }}
-                />
-                <FieldError msg={show("phone", shippingErrors.phone)} />
-              </div>
-            </div>
-            <div className="mb-4">
-              <label className={labelCls}>Address</label>
-              <input
-                className={`${inputCls} ${show("address1", shippingErrors.address1) ? inputErrCls : ""}`}
-                placeholder="Rue Gouraud, Gemmayzeh"
-                value={address1}
-                disabled={fulfillment === "pickup"}
-                onBlur={() => mark("address1")}
-                onChange={(e) => { setAddress1(e.target.value); mark("address1"); }}
-              />
-              <FieldError msg={show("address1", shippingErrors.address1)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>City</label>
-                <input
-                  className={`${inputCls} ${show("city", shippingErrors.city) ? inputErrCls : ""}`}
-                  placeholder="Beirut"
-                  value={city}
-                  disabled={fulfillment === "pickup"}
-                  onBlur={() => mark("city")}
-                  onChange={(e) => { setCity(e.target.value); mark("city"); }}
-                />
-                <FieldError msg={show("city", shippingErrors.city)} />
-              </div>
-              <div>
-                <label className={labelCls}>Pickup or delivery</label>
-                <select
-                  value={fulfillment}
-                  onChange={(e) => setFulfillment(e.target.value)}
-                  className={`${inputCls} cursor-pointer`}
-                >
-                  <option value="delivery">Home delivery</option>
-                  <option value="pickup">Pick up in branch</option>
-                </select>
-              </div>
-            </div>
-          </Panel>
+      <h1 className="font-serif text-3xl font-medium mb-1">Checkout</h1>
+      <p className="text-sm text-grayx mb-8">Almost there — confirm where you&apos;ll receive your order and pay securely.</p>
 
-          <Panel title="Payment">
-            <div className="mb-4">
-              <label className={labelCls}>Card number</label>
-              <input
-                className={`${inputCls} ${show("cardNumber", cardErrors.cardNumber) ? inputErrCls : ""}`}
-                inputMode="numeric"
-                placeholder="•••• •••• •••• 4242"
-                value={cardNumber}
-                onBlur={() => mark("cardNumber")}
-                onChange={(e) => { setCardNumber(formatCardNumber(e.target.value)); mark("cardNumber"); }}
-              />
-              <FieldError msg={show("cardNumber", cardErrors.cardNumber)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Expiry</label>
-                <input
-                  className={`${inputCls} ${show("expiry", cardErrors.expiry) ? inputErrCls : ""}`}
-                  inputMode="numeric"
-                  placeholder="MM/YY"
-                  value={expiry}
-                  onBlur={() => mark("expiry")}
-                  onChange={(e) => { setExpiry(formatExpiry(e.target.value)); mark("expiry"); }}
-                />
-                <FieldError msg={show("expiry", cardErrors.expiry)} />
-              </div>
-              <div>
-                <label className={labelCls}>CVC</label>
-                <input
-                  className={`${inputCls} ${show("cvc", cardErrors.cvc) ? inputErrCls : ""}`}
-                  inputMode="numeric"
-                  placeholder="•••"
-                  maxLength={4}
-                  value={cvc}
-                  onBlur={() => mark("cvc")}
-                  onChange={(e) => { setCvc(e.target.value.replace(/\D/g, "")); mark("cvc"); }}
-                />
-                <FieldError msg={show("cvc", cardErrors.cvc)} />
-              </div>
-            </div>
-          </Panel>
+      {loadingCart ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 items-start">
+          <div className="h-72 bg-beige/40 animate-pulse" />
+          <div className="h-52 bg-beige/40 animate-pulse" />
         </div>
-
-        <div className="border border-beige bg-white p-6 h-fit">
-          <h3 className="font-serif text-base font-medium mb-4">Order summary</h3>
-          {loadingCart ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-4 bg-beige/50" />
-              <div className="h-4 bg-beige/50" />
-              <div className="h-4 bg-beige/50 w-2/3 mb-3" />
-              <div className="h-11 w-full bg-beige/50" />
-            </div>
-          ) : cartError ? (
-            <div>
-              <p className="text-[#B15C4A] text-xs">{cartError}</p>
-              <Button variant="outline" onClick={loadCart} className="w-full justify-center mt-4">
-                Retry
-              </Button>
-            </div>
-          ) : cart.items.length === 0 ? (
-            <div>
-              <p className="text-sm text-grayx">Your cart is empty.</p>
-              <Link href="/shop" className="block text-sm font-medium text-gold hover:underline mt-4">
-                Browse the shop
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between text-sm mb-2.5">
-                <span>{count} {count === 1 ? "item" : "items"}</span>
-                <span>${cart.subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-2.5">
-                <span>Shipping</span>
-                <span>Free</span>
-              </div>
-              <div className="flex justify-between font-semibold border-t border-beige pt-3 mt-3 mb-5">
-                <span>Total</span>
-                <span>${cart.subtotal.toLocaleString()}</span>
-              </div>
-              {error && <p className="text-[#B15C4A] text-xs mb-3">{error}</p>}
-              <Button
-                onClick={placeOrder}
-                disabled={placing || cart.subtotal <= 0}
-                className="w-full justify-center"
-              >
-                {placing ? "Processing payment..." : "Pay & place order"}
-              </Button>
-            </>
-          )}
+      ) : cartError ? (
+        <div className="border border-beige bg-white p-6">
+          <p className="text-[#B15C4A] text-xs">{cartError}</p>
+          <Button variant="outline" onClick={loadCart} className="w-full justify-center mt-4">
+            Retry
+          </Button>
         </div>
-      </div>
+      ) : cart.items.length === 0 ? (
+        <div className="border border-beige bg-white p-8 text-center">
+          <p className="text-sm text-grayx mb-3">Your cart is empty.</p>
+          <Link href="/shop" className="block text-sm font-medium text-gold hover:underline">
+            Browse the shop
+          </Link>
+        </div>
+      ) : (
+        <CheckoutForm items={cart.items} subtotal={cart.subtotal} />
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Check, Heart } from "lucide-react";
 import { Product } from "@/lib/types/domain";
 import { authedFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -40,6 +40,12 @@ export default function ProductDetailPage() {
     authedFetch("/favorites")
       .then((data) => setIsFavorite((data.favorites || []).some((favorite: { item_id: string }) => favorite.item_id === id)))
       .catch(() => setIsFavorite(false));
+    authedFetch("/cart")
+      .then((data) => {
+        const inCart = (data.items || []).some((it: any) => it.item_id === id);
+        if (inCart) setAdded(true);
+      })
+      .catch(() => {});
   }, [id]);
 
   async function handleAddToCart() {
@@ -201,13 +207,19 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="flex gap-3">
-            <Button
-              onClick={handleAddToCart}
-              disabled={product.status !== "available" || adding || added}
-              className="flex-1 justify-center"
-            >
-              {product.status !== "available" ? "Not Available" : added ? "Added to Cart" : adding ? "Adding..." : "Add to cart"}
-            </Button>
+            {added ? (
+              <div className="flex-1 flex items-center justify-center gap-2 border border-gold bg-ivory/60 text-charcoal text-sm font-semibold px-6 py-3">
+                <Check size={16} className="text-gold" /> Added to Cart
+              </div>
+            ) : (
+              <Button
+                onClick={handleAddToCart}
+                disabled={product.status !== "available" || adding}
+                className="flex-1 justify-center"
+              >
+                {product.status !== "available" ? "Not Available" : adding ? "Adding..." : "Add to cart"}
+              </Button>
+            )}
             <button
               type="button"
               onClick={toggleFavorite}

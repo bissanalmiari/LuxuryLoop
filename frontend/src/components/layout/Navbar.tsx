@@ -9,9 +9,11 @@ import {
   Heart,
   LogIn,
   LogOut,
+  Menu,
   ShoppingBag,
   UserRound,
   UserPlus,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getRole, Role } from "@/lib/auth";
@@ -21,6 +23,7 @@ const NAV_LINKS = [
   { label: "Shop", href: "/shop" },
   { label: "Consign", href: "/consign" },
   { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export function Navbar() {
@@ -28,6 +31,7 @@ export function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -55,16 +59,18 @@ export function Navbar() {
   async function logout() {
     await createClient().auth.signOut();
     setAccountOpen(false);
+    setMobileOpen(false);
     window.location.assign("/");
   }
 
   return (
     <header className="border-b border-beige bg-white sticky top-0 z-40">
-      <div className="max-w-[1240px] mx-auto px-8 py-5 flex items-center justify-between">
-        <Link href="/" className="font-serif text-2xl">
+      <div className="max-w-[1240px] mx-auto px-5 md:px-8 py-4 md:py-5 flex items-center justify-between gap-4">
+        <Link href="/" className="font-serif text-[22px] md:text-2xl shrink-0">
           Luxury<span className="text-gold italic">Loop</span>
         </Link>
-        <nav className="flex items-center gap-8">
+
+        <nav className="hidden lg:flex items-center gap-8">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -75,7 +81,8 @@ export function Navbar() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-1 md:gap-3">
           {user && (
             <>
               <Link href="/orders" className="p-2 text-charcoal hover:text-gold transition-colors" aria-label="Orders" title="Orders">
@@ -84,27 +91,27 @@ export function Navbar() {
               <Link href="/cart" className="p-2 text-charcoal hover:text-gold transition-colors" aria-label="Cart" title="Cart">
                 <ShoppingBag size={18} strokeWidth={1.8} />
               </Link>
-              <Link href="/favorites" className="p-2 text-charcoal hover:text-gold transition-colors" aria-label="Favorites" title="Favorites">
+              <Link href="/favorites" className="hidden sm:block p-2 text-charcoal hover:text-gold transition-colors" aria-label="Favorites" title="Favorites">
                 <Heart size={18} strokeWidth={1.8} />
               </Link>
             </>
           )}
 
           {user ? (
-            <div ref={menuRef} className="relative ml-1">
+            <div ref={menuRef} className="relative">
               <button
                 type="button"
                 onClick={() => setAccountOpen((open) => !open)}
-                className="flex items-center gap-1.5 p-2 text-charcoal hover:text-gold transition-colors"
+                className="flex items-center gap-1 p-2 text-charcoal hover:text-gold transition-colors"
                 aria-label="Account menu"
                 aria-expanded={accountOpen}
                 title="Account"
               >
                 <UserRound size={19} strokeWidth={1.8} />
-                <ChevronDown size={13} strokeWidth={1.8} />
+                <ChevronDown size={13} strokeWidth={1.8} className="hidden sm:block" />
               </button>
               {accountOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 border border-beige bg-white py-1 shadow-[0_8px_24px_rgba(28,28,28,0.12)]">
+                <div className="absolute right-0 top-full mt-2 w-44 border border-beige bg-white py-1 shadow-[0_8px_24px_rgba(28,28,28,0.12)] z-50">
                   {(role === "admin" || role === "staff") && (
                     <Link
                       href={role === "admin" ? "/admin" : "/staff"}
@@ -136,13 +143,40 @@ export function Navbar() {
               <Link href="/login" className="p-2 text-charcoal hover:text-gold transition-colors" aria-label="Log in" title="Log in">
                 <LogIn size={18} strokeWidth={1.8} />
               </Link>
-              <Link href="/register" className="p-2 text-charcoal hover:text-gold transition-colors" aria-label="Register" title="Register">
+              <Link href="/register" className="hidden sm:block p-2 text-charcoal hover:text-gold transition-colors" aria-label="Register" title="Register">
                 <UserPlus size={18} strokeWidth={1.8} />
               </Link>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            className="lg:hidden p-2 text-charcoal hover:text-gold transition-colors"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X size={20} strokeWidth={1.8} /> : <Menu size={20} strokeWidth={1.8} />}
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="lg:hidden border-t border-beige bg-white">
+          <nav className="max-w-[1240px] mx-auto px-5 py-3 flex flex-col">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="px-2 py-3 text-[15px] font-medium text-charcoal hover:text-gold transition-colors border-b border-beige/60 last:border-b-0"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

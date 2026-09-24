@@ -86,26 +86,34 @@ def _order_split(client: Client, order_id: str) -> tuple[float, float]:
 def _payout_recipient_name(client: Client, item_id: str) -> str | None:
     item = (
         client.table("items")
-        .select("ownership_type, acquisition_id")
+        .select("ownership_type, acquisition_id, source_request_id")
         .eq("id", item_id)
         .maybe_single()
         .execute()
         .data
         or {}
     )
-    if item.get("ownership_type") != "consigned" or not item.get("acquisition_id"):
+    if item.get("ownership_type") != "consigned":
         return None
 
-    acquisition = (
-        client.table("acquisitions")
-        .select("request_id")
-        .eq("id", item["acquisition_id"])
-        .maybe_single()
-        .execute()
-        .data
-        or {}
-    )
-    request_id = acquisition.get("request_id")
+    # Newer items link to an acquisition which links to the request; older items
+    # (created before acquisitions existed) link to the request directly via
+    # source_request_id. Accept either so legacy sales still show a recipient.
+    request_id = None
+    acquisition_id = item.get("acquisition_id")
+    if acquisition_id:
+        acquisition = (
+            client.table("acquisitions")
+            .select("request_id")
+            .eq("id", acquisition_id)
+            .maybe_single()
+            .execute()
+            .data
+            or {}
+        )
+        request_id = acquisition.get("request_id")
+    if not request_id:
+        request_id = item.get("source_request_id")
     if not request_id:
         return None
 
@@ -352,7 +360,7 @@ def list_sales(
         customer = client.table("users").select("full_name, email").eq("id", o["customer_id"]).maybe_single().execute().data or {}
         items = (
             client.table("order_items")
-            .select("id, item_id, unit_price, items(title, item_images(file_url))")
+            .select("id, item_id, unit_price, items(title, ownership_type, item_images(file_url))")
             .eq("order_id", o["id"])
             .execute()
             .data
@@ -373,6 +381,7 @@ def list_sales(
                 "unit_price": float(row.get("unit_price") or 0),
                 "image": (imgs[0].get("file_url") if imgs else "") or "",
                 "payout_recipient": payout_recipient,
+                "ownership_type": it.get("ownership_type") or "store_owned",
             })
         total, customer_payout = _order_split(client, o["id"])
         revenue += total

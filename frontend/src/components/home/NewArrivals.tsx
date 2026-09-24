@@ -40,7 +40,7 @@ export function NewArrivals() {
         </div>
         <p className="text-[14.5px] text-grayx max-w-[380px]">Added to the collection this week.</p>
       </div>
-      <div className="grid grid-cols-4 gap-7">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
         {loading
           ? Array.from({ length: COUNT }).map((_, i) => (
               <div key={i} className="card animate-pulse">

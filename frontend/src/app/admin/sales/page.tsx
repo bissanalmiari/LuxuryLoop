@@ -37,12 +37,12 @@ export default function AdminSalesPage() {
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-3xl font-medium mb-1">Sales records</h1>
           <p className="text-sm text-grayx">Filtered view over orders — paid + completed.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             disabled={loading || data.sales.length === 0}
@@ -70,7 +70,8 @@ export default function AdminSalesPage() {
         </div>
       </div>
 
-      <table className="w-full text-sm bg-white border border-beige">
+      <div className="bg-white border border-beige overflow-x-auto">
+      <table className="w-full text-sm min-w-[900px]">
         <thead>
           <tr className="border-b border-beige text-[11px] text-grayx uppercase">
             <th className="text-left px-6 py-3">Order</th>
@@ -99,7 +100,15 @@ export default function AdminSalesPage() {
               <td className="px-6 py-3">{s.customer_name}</td>
               <td className="px-6 py-3">{s.payout_recipients?.join(", ") || "—"}</td>
               <td className="px-6 py-3">{s.branch_name}</td>
-              <td className="px-6 py-3">{s.items.map((i: any) => i.title).join(", ")}</td>
+              <td className="px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-[220px]">
+                  {s.items.map((i: any) => (
+                    <span key={i.id} className="inline-flex items-center gap-1.5">
+                      {i.title}
+                    </span>
+                  ))}
+                </div>
+              </td>
               <td className="px-6 py-3 font-mono">${s.total_amount.toLocaleString()}</td>
               <td className="px-6 py-3 font-mono">${(s.customer_payout_total ?? 0).toLocaleString()}</td>
               <td className="px-6 py-3"><Badge tone={tone[s.status] ?? "gray"}>{s.status}</Badge></td>
@@ -108,6 +117,7 @@ export default function AdminSalesPage() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

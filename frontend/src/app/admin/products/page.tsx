@@ -16,7 +16,7 @@ const STORAGE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "uploa
 
 const statusBadge: Record<string, "gold" | "green" | "red" | "gray"> = {
   available: "green",
-  sold: "gray",
+  sold: "red",
   reserved: "gold",
   pending_authentication: "gold",
   rejected: "red",
@@ -271,14 +271,14 @@ export default function AdminProductsPage() {
         <Button onClick={openCreate}><Plus size={15} /> Add Product</Button>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search products…"
-          className="px-3 py-2 border border-beige text-sm bg-white outline-none w-64 focus:border-gold"
+          className="px-3 py-2 border border-beige text-sm bg-white outline-none w-full sm:w-64 focus:border-gold"
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none flex-1 sm:flex-none">
           <option value="">All Status</option>
           <option value="available">Available</option>
           <option value="reserved">Reserved</option>
@@ -286,15 +286,15 @@ export default function AdminProductsPage() {
           <option value="pending_authentication">Pending Auth</option>
           <option value="rejected">Rejected</option>
         </select>
-        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none">
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none flex-1 sm:flex-none">
           <option value="">All Categories</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none">
+        <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none flex-1 sm:flex-none">
           <option value="">All Brands</option>
           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
-        <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none">
+        <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="px-3 py-2 border border-beige text-sm bg-white outline-none flex-1 sm:flex-none">
           <option value="">All Branches</option>
           {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
@@ -303,7 +303,7 @@ export default function AdminProductsPage() {
         </Button>
       </div>
 
-      <div className="bg-white border border-beige">
+      <div className="bg-white border border-beige overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-beige">
@@ -330,11 +330,18 @@ export default function AdminProductsPage() {
                 <tr key={p.id} className="border-b border-beige/50 hover:bg-ivory/30 transition-colors">
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-ivory border border-beige flex items-center justify-center shrink-0 overflow-hidden">
-                        {p.image_urls?.[0] ? (
-                          <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xs text-grayx font-serif">{p.brand_name?.charAt(0)}</span>
+                      <div className="relative shrink-0">
+                        <div className="w-10 h-10 bg-ivory border border-beige flex items-center justify-center overflow-hidden">
+                          {p.image_urls?.[0] ? (
+                            <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs text-grayx font-serif">{p.brand_name?.charAt(0)}</span>
+                          )}
+                        </div>
+                        {p.ownership_type === "consigned" && (
+                          <span className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[18px] h-[18px] rotate-45 bg-charcoal flex items-center justify-center ring-1 ring-gold/40 z-10">
+                            <span className="-rotate-45 text-gold text-[10px] font-bold uppercase leading-none">C</span>
+                          </span>
                         )}
                       </div>
                       <div>

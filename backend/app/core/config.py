@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:3000,http://localhost:3001"
+    site_url: str = "http://localhost:3000"  # frontend base URL for Stripe success/cancel redirects
 
     supabase_url: str = ""
     supabase_anon_key: str = ""
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
 
     resend_api_key: str = ""
     email_from: str = "onboarding@resend.dev"   # free tier sender; swap to your own domain once verified
+
+    stripe_secret_key: str = ""
+    stripe_publishable_key: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
