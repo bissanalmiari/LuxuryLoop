@@ -3,13 +3,19 @@ project_id = "luxuryloop"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage"]
+schemas = ["public", "graphql_public"]
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/api/auth/callback"]
+site_url = "https://luxury-loop.vercel.app"
+additional_redirect_urls = ["https://luxury-loop.vercel.app/**", "https://luxury-loop.vercel.app/api/auth/callback"]
+
+[auth.email]
+enable_confirmations = true
+
+[auth.email.smtp]
+enabled = false
 
 [storage]
 enabled = true
-file_size_limit = "10MiB"
+file_size_limit = "50MiB"
