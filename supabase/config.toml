@@ -18,8 +18,11 @@ enabled = false
 
 [auth.rate_limit]
 email_sent = 300
+sms_sent = 300
+otp = 300
 token_refresh = 300
 sign_up = 300
+token_verification = 300
 
 [storage]
 enabled = true
