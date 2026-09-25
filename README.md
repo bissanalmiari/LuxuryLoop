@@ -94,7 +94,7 @@ uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 ## Deployment
 
 - **Frontend → Vercel:** import the repo, root = `frontend`, set the `NEXT_PUBLIC_*` env vars. The production frontend URL is `https://luxury-loop.vercel.app`.
-- **Backend → Render:** new Web Service, root = `backend`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, set all env vars including `CORS_ORIGINS=https://<your-vercel-domain>`.
+- **Backend → Render:** new Web Service, root = `backend`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, set all env vars including `CORS_ORIGINS=https://<your-vercel-domain>`, `RESEND_API_KEY`, and `EMAIL_FROM`. `EMAIL_FROM` must be a Resend-verified sender domain; `onboarding@resend.dev` only works for Resend's permitted test recipient.
 
 ### Supabase email confirmation
 
@@ -104,6 +104,8 @@ In Supabase **Authentication → URL Configuration**, set:
 - **Redirect URL:** `https://luxury-loop.vercel.app/api/auth/callback`
 
 In **Authentication → Email Templates → Confirm signup**, use `{{ .ConfirmationURL }}` for the confirmation link. Do not hardcode a localhost URL. Create a new test account after changing these settings; previously sent emails keep their original redirect URL.
+
+Appointment emails are sent by the backend through Resend when staff schedules physical authentication. Configure `RESEND_API_KEY` and a verified `EMAIL_FROM` sender in Render, then redeploy the backend. Supabase signup confirmation emails are configured separately in Supabase Auth.
 
 ## Testing
 
