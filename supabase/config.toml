@@ -16,6 +16,11 @@ enable_confirmations = true
 [auth.email.smtp]
 enabled = false
 
+[auth.rate_limit]
+email_sent = 300
+token_refresh = 300
+sign_up = 300
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
