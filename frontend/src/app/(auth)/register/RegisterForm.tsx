@@ -30,10 +30,14 @@ export default function RegisterForm() {
     }
 
     const supabase = createClient();
+    const site = window.location.origin;
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role: "customer" } },
+      options: {
+        data: { full_name: fullName, role: "customer" },
+        emailRedirectTo: `${site}/api/auth/callback?redirectTo=/login`,
+      },
     });
 
     setLoading(false);

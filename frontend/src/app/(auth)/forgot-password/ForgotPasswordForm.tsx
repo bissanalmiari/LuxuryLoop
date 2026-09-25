@@ -18,7 +18,7 @@ export default function ForgotPasswordForm() {
     setLoading(true);
     setError(null);
 
-    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const site = window.location.origin;
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${site}/api/auth/callback?redirectTo=/reset-password`,
