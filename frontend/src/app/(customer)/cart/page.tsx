@@ -29,9 +29,9 @@ export default function CartPage() {
 
   if (loading)
     return (
-      <div className="max-w-[900px] mx-auto px-8 py-14">
+      <div className="max-w-[900px] mx-auto px-4 sm:px-8 py-14">
         <div className="h-8 w-48 bg-beige/50 animate-pulse mb-8" />
-        <div className="grid grid-cols-[1fr_320px] gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-10">
           <div className="border border-beige bg-white divide-y divide-beige">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
@@ -55,25 +55,25 @@ export default function CartPage() {
     );
 
   return (
-    <div className="max-w-[900px] mx-auto px-8 py-14">
+    <div className="max-w-[900px] mx-auto px-4 sm:px-8 py-14">
       <h1 className="font-serif text-3xl font-medium mb-8">Your cart</h1>
       {items.length === 0 ? (
         <p className="text-grayx text-sm">Your cart is empty. <Link href="/shop" className="text-gold">Browse the shop</Link></p>
       ) : (
-        <div className="grid grid-cols-[1fr_320px] gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-10">
           <div className="border border-beige bg-white divide-y divide-beige">
             {items.map((it) => (
-              <div key={it.id} className="flex items-center gap-4 p-4">
-                <div className="w-16 h-16 bg-ivory border border-beige shrink-0 overflow-hidden">
+              <div key={it.id} className="flex items-center gap-3 sm:gap-4 p-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-ivory border border-beige shrink-0 overflow-hidden">
                   {it.image_url && <img src={it.image_url} alt="" className="w-full h-full object-cover" />}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-xs text-grayx">{it.brand_name}</p>
-                  <p className="font-medium text-sm">{it.title}</p>
+                  <p className="font-medium text-sm truncate">{it.title}</p>
                   <p className="text-xs text-grayx">Branch: {it.branch_name}{it.branch_country ? `, ${it.branch_country}` : ""}</p>
                   {it.status !== "available" && <p className="text-xs text-red mt-1">No longer available — please remove</p>}
                 </div>
-                <p className="font-serif">${it.selling_price.toLocaleString()}</p>
+                <p className="font-serif shrink-0 text-sm sm:text-base">${it.selling_price.toLocaleString()}</p>
                 <button
                   type="button"
                   onClick={() => remove(it.id)}
