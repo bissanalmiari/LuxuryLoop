@@ -71,6 +71,61 @@ def test_consign_flow(client, db, as_customer):
     assert any(c["id"] == body["id"] for c in mine.json()["consignments"])
 
 
+def test_consign_daily_ai_cap_routes_to_manual_review(client, db, as_customer):
+    from datetime import datetime, timezone
+
+    from app.core.config import settings
+
+    limit = settings.ai_screening_daily_limit
+    today = datetime.now(timezone.utc).isoformat()
+    # Seed existing screened consignments for this customer so the daily cap is full.
+    for i in range(limit):
+        req_id = f"prior-req-{i}"
+        db.seed("authentication_requests", [{
+            "id": req_id,
+            "customer_id": "u-customer",
+            "status": "under_review",
+            "acquisition_intent": "consignment",
+            "model": f"Bulk {i}",
+            "description": "Prior submission",
+            "condition": "Excellent",
+            "category_id": "c1",
+            "brand_id": "br1",
+            "submitted_at": today,
+            "created_at": today,
+        }])
+        db.seed("ai_assessments", [{
+            "request_id": req_id,
+            "confidence_score": 80.0,
+            "supporting_indicators": [],
+            "suspicious_indicators": [],
+            "explanation": "genuine",
+            "model_used": "gemini-vision",
+            "created_at": today,
+        }])
+
+    resp = client.post(
+        "/api/v1/consignments",
+        json={
+            "model": "Rolex Daytona",
+            "description": "White dial",
+            "condition": "Excellent",
+            "category_id": "c1",
+            "brand_id": "br1",
+            "preferred_branch_id": "b1",
+            "documents": [{"document_type": "image", "file_url": "/uploads/daytona.jpg"}],
+        },
+    )
+    assert resp.status_code == 201
+    new_req_id = resp.json()["id"]
+
+    assessments = db._rows["ai_assessments"]
+    fallback = [a for a in assessments if a["request_id"] == new_req_id]
+    assert len(fallback) == 1
+    assert fallback[0]["model_used"] == "fallback"
+    assert "limit" in fallback[0]["explanation"].lower()
+
+
 def test_cart_add_and_view(client, db, as_customer):
     add = client.post("/api/v1/cart", json={"item_id": "i1"})
     assert add.status_code == 201

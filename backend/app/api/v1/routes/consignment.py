@@ -46,7 +46,18 @@ async def create_consignment(payload: ConsignmentCreate,background_tasks: Backgr
         raise HTTPException(403, "Only customers can submit consignments")
     client = get_supabase_admin()
     result = consignment_service.create_consignment(client, user.id, payload.model_dump())
-    background_tasks.add_task(consignment_service.run_ai_screening, client, result["id"]) 
+    if consignment_service.within_ai_screening_limit(client, user.id):
+        background_tasks.add_task(consignment_service.run_ai_screening, client, result["id"])
+    else:
+        # Daily AI screening cap reached -> fallback assessment routes to manual review.
+        client.table("ai_assessments").insert({
+            "request_id": result["id"],
+            "confidence_score": None,
+            "supporting_indicators": [],
+            "suspicious_indicators": [],
+            "explanation": "AI screening limit reached for today. Flagged for manual review.",
+            "model_used": "fallback",
+        }).execute()
     return ConsignmentOut(**result)
 
 

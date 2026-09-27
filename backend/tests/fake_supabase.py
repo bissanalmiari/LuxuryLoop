@@ -11,7 +11,10 @@ from typing import Any
 
 
 def _matches(row: dict, filters: list) -> bool:
-    for key, val in filters:
+    for item in filters:
+        op = item[2] if len(item) > 2 else "eq"
+        key = item[0]
+        val = item[1]
         if key == "__or__":
             ors = val
             for group in ors:
@@ -21,6 +24,13 @@ def _matches(row: dict, filters: list) -> bool:
         if key == "__in__":
             col, values = val
             if row.get(col) not in values:
+                return False
+        elif key == "__gte__":
+            col, bound = val
+            if row.get(col) is not None and str(row.get(col) or "") < str(bound):
+                return False
+        elif op == "neq":
+            if row.get(key) == val:
                 return False
         else:
             if row.get(key) != val:
@@ -65,6 +75,10 @@ class FakeTable:
 
     def in_(self, col: str, values: list):
         self._filters.append(("__in__", (col, values)))
+        return self
+
+    def gte(self, col: str, value):
+        self._filters.append(("__gte__", (col, value)))
         return self
 
     def or_(self, or_str: str):
