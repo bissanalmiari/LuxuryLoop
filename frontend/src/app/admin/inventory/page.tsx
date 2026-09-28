@@ -5,7 +5,6 @@ import { ArrowRightLeft, History, X } from "lucide-react";
 import { authedFetch } from "@/lib/api";
 
 import { Branch, Product, InventoryMovement } from "@/lib/types/domain";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -30,12 +29,16 @@ export default function AdminInventoryPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      const meta = data?.user?.user_metadata ?? {};
-      setRole(meta.role ?? "staff");
-      setMyBranchId(meta.branch_id ?? "");
-      if (meta.role !== "admin" && meta.branch_id) setBranchFilter(meta.branch_id);
-    });
+    // Authoritative role + branch come from the DB (public.users), not the JWT —
+    // the JWT never carries branch_id, so resolving it from user_metadata would
+    // wrongly let staff see every branch's inventory.
+    authedFetch("/auth/me")
+      .then((profile) => {
+        setRole(profile.role ?? "staff");
+        setMyBranchId(profile.branch_id ?? "");
+        if (profile.role !== "admin" && profile.branch_id) setBranchFilter(profile.branch_id);
+      })
+      .catch(() => {});
     authedFetch("/branches")
       .then((b) => setBranches(Array.isArray(b) ? b : b.items ?? []))
       .catch((err) => setTransferError(err instanceof Error ? err.message : "Could not load branches"));

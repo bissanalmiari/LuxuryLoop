@@ -16,10 +16,7 @@ const NAV: { group: string; items: { href: string; label: string }[] }[] = [
     items: [
       { href: "/staff/inventory", label: "Inventory" },
       { href: "/staff/products", label: "Products" },
-      { href: "/staff/sales", label: "Sales (POS)" },
       { href: "/staff/orders", label: "Orders" },
-      { href: "/staff/customers", label: "Customers" },
-      { href: "/staff/pricing", label: "Pricing" },
     ],
   },
 ];
