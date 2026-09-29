@@ -93,10 +93,10 @@ async def confirm_payment(
         raise HTTPException(status_code=402, detail="Payment not confirmed")
 
     client = get_supabase_admin()
-    order_ids = order_service.mark_payments_succeeded(client, payload.checkout_session_id)
+    order_ids, newly_paid = order_service.mark_payments_succeeded(client, payload.checkout_session_id)
     if not order_ids:
         raise HTTPException(status_code=400, detail="No pending payments found for that session")
 
-    for order_id in order_ids:
+    for order_id in newly_paid:
         background_tasks.add_task(email_service.send_order_confirmation_email, client, order_id)
     return CheckoutOut(order_ids=order_ids)

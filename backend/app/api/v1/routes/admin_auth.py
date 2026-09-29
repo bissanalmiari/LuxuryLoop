@@ -3,6 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import require_admin, CurrentUser
 from app.core.supabase_client import get_supabase_admin
 from app.schemas.auth import AdminCreateUser, AdminRoleUpdate, AdminUserResponse, AdminUserUpdate
+import logging
+
+logger = logging.getLogger("luxuryloop.admin")
 
 router = APIRouter(prefix="/auth/admin", tags=["admin-auth"])
 
@@ -64,7 +67,7 @@ async def update_role(
     try:
         client.table("users").update({"role": payload.role}).eq("id", user_id).execute()
     except Exception:
-        pass
+        logger.exception("Failed to sync role in public.users for user %s", user_id)
 
     resp = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).single().execute()
     return AdminUserResponse(**(resp.data or {}))
@@ -80,7 +83,7 @@ async def toggle_active(
     try:
         client.auth.admin.update_user_by_id(user_id, {"app_metadata": {"is_active": is_active}})
     except Exception:
-        pass
+        logger.exception("Failed to sync is_active in auth metadata for user %s", user_id)
 
     client.table("users").update({"is_active": is_active}).eq("id", user_id).execute()
     resp = client.table("users").select("id, email, full_name, role, is_active").eq("id", user_id).single().execute()
@@ -108,7 +111,7 @@ async def update_user(
         auth_update["user_metadata"].update(data)
         client.auth.admin.update_user_by_id(user_id, auth_update)
     except Exception:
-        pass
+        logger.exception("Failed to sync auth metadata for user %s", user_id)
 
     try:
         client.table("users").update(data).eq("id", user_id).execute()

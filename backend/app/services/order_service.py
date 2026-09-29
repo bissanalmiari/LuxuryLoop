@@ -211,19 +211,27 @@ def cancel_pending_orders(client: Client, customer_id: str, order_ids: List[str]
     client.table("orders").delete().in_("id", valid_order_ids).execute()
 
 
-def mark_payments_succeeded(client: Client, payment_intent_id: str) -> List[str]:
-    """Flip 'pending' payments for an intent to 'succeeded' and mark orders paid.
-    Returns the order ids."""
-    rows = (
+def mark_payments_succeeded(client: Client, payment_intent_id: str) -> tuple[list[str], list[str]]:
+    """Confirm payment for an intent. Idempotent: a repeated confirmation for an
+    already-paid intent returns the same order ids without re-flipping state or
+    re-sending emails. Returns (all_order_ids_for_intent, newly_paid_order_ids)."""
+    pending = (
         client.table("payments")
         .select("order_id")
         .eq("stripe_payment_intent_id", payment_intent_id)
         .eq("status", "pending")
         .execute()
     ).data or []
-    order_ids = [r["order_id"] for r in rows]
-    if not order_ids:
-        return []
-    client.table("payments").update({"status": "succeeded"}).in_("order_id", order_ids).execute()
-    client.table("orders").update({"status": "paid"}).in_("id", order_ids).execute()
-    return order_ids
+    newly_paid = [r["order_id"] for r in pending]
+    if newly_paid:
+        client.table("payments").update({"status": "succeeded"}).in_("order_id", newly_paid).execute()
+        client.table("orders").update({"status": "paid"}).in_("id", newly_paid).execute()
+
+    all_rows = (
+        client.table("payments")
+        .select("order_id")
+        .eq("stripe_payment_intent_id", payment_intent_id)
+        .eq("status", "succeeded")
+        .execute()
+    ).data or []
+    return [r["order_id"] for r in all_rows], newly_paid

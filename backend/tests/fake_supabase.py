@@ -169,6 +169,10 @@ class FakeTable:
                 row = {**row, "created_at": row.get("created_at", "2026-01-01T00:00:00Z")}
                 defaults = {
                     "authentication_requests": {"status": "submitted", "submitted_at": row["created_at"]},
+                    "physical_authentications": {
+                        "branch_id": None, "staff_id": None, "appointment_at": None,
+                        "result": None, "notes": None, "decided_at": None,
+                    },
                 }
                 row = {**defaults.get(self.name, {}), **row}
                 table_rows.append(row)

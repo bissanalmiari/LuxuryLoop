@@ -43,11 +43,13 @@ def client(db: FakeSupabase, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     # Never touch the real Postgres/Supabase from tests.
     import app.core.security as security
     monkeypatch.setattr(security, "_resolve_role_from_db", lambda user_id: (None, None))
-    # Never hit the real Stripe API from tests — swap in a fake client.
     from app.core.config import settings
+    monkeypatch.setattr(settings, "supabase_db_url", "")
     monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_fake_for_tests")
+    monkeypatch.setattr(settings, "resend_api_key", "")  # background emails never leave the box
     import app.services.payment_service as payment_service
-    monkeypatch.setattr(payment_service, "stripe", _FakeStripe())
+    _FakeStripe._instance.sessions.clear()
+    monkeypatch.setattr(payment_service, "stripe", _FakeStripe._instance)
     app.dependency_overrides.clear()
     with TestClient(app) as c:
         yield c
@@ -55,10 +57,10 @@ def client(db: FakeSupabase, monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 
 class _FakeSession:
-    def __init__(self, sid: str):
+    def __init__(self, sid: str, payment_status: str = "paid"):
         self.id = sid
         self.url = f"https://checkout.stripe.com/c/pay/{sid}"
-        self.payment_status = "paid"
+        self.payment_status = payment_status
 
 
 class _FakeStripe:
@@ -67,6 +69,13 @@ class _FakeStripe:
 
     def __init__(self):
         self.sessions: dict[str, _FakeSession] = {}
+
+    @classmethod
+    def set_payment_status(cls, sid: str, payment_status: str) -> None:
+        """Tests force a payment failure by downgrading a stored session."""
+        if sid not in _FakeStripe._instance.sessions:
+            _FakeStripe._instance.sessions[sid] = _FakeSession(sid)
+        _FakeStripe._instance.sessions[sid].payment_status = payment_status
 
     class checkout:
         class Session:
@@ -81,7 +90,8 @@ class _FakeStripe:
 
             @staticmethod
             def retrieve(sid: str):
-                return _FakeStripe._instance.sessions.get(sid) or _FakeSession(sid)
+                # Unknown sessions behave like a failed/redirected payment.
+                return _FakeStripe._instance.sessions.get(sid) or _FakeSession(sid, payment_status="unpaid")
 
 
 _FakeStripe._instance = _FakeStripe()

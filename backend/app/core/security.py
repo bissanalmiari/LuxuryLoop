@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, jws, JWTError
@@ -5,6 +7,8 @@ import httpx
 
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_admin
+
+logger = logging.getLogger("luxuryloop.security")
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -21,6 +25,7 @@ def _load_jwks() -> dict[str, dict]:
             _jwks_by_kid = {key["kid"]: key for key in resp.json().get("keys", [])}
             return _jwks_by_kid
         except Exception:
+            logger.warning("Failed to load Supabase JWKS (attempt %d/3)", attempt + 1, exc_info=True)
             if attempt == 2:
                 raise
     return {}  # pragma: no cover
@@ -115,7 +120,9 @@ def _resolve_role_from_db(user_id: str) -> tuple[str | None, str | None]:
         if row:
             return row[0], row[1]
     except Exception:
-        pass
+        logger.exception(
+            "Could not resolve role/branch from public.users for user %s; falling back to JWT claims", user_id
+        )
     return None, None
 
 
